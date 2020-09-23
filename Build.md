@@ -1,4 +1,5 @@
-#How To Build
+How To Build
+------------
 To build this library the folloing packages are required :-
 1. CMAKE -- 2.8 or higher
 2. OpenSSL
