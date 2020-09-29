@@ -190,9 +190,9 @@ Smb2SessionSetup::smb2ProcessReplyAndAppData(Smb2ContextPtr smb2)
     return 0;
 #else
     // hash the request
-    if (smb2_update_preauth_integrity_hash(smb2, &out) < 0)
+    if (smb2UpdatePreauthIntegrityHash(smb2, &out, err) < 0)
     {
-      err = stringf("SSETUP 1 - smb2_update_preauth_integrity_hash failed - %s", smb2->smb2_get_error());
+      err = stringf("SSETUP 1 - smb2UpdatePreauthIntegrityHash failed - %s", err.c_str());
       appData->setStatusMsg(SMB2_STATUS_INSUFFICIENT_RESOURCES, err);
       smb2->endSendReceive();
       return 0;
@@ -201,9 +201,9 @@ Smb2SessionSetup::smb2ProcessReplyAndAppData(Smb2ContextPtr smb2)
     {
       // hash the response
       /* The last successful SessionSetup response is not used in PreauthIntegrityHash calculation */
-      if (smb2_update_preauth_integrity_hash(smb2, &in) < 0)
+      if (smb2UpdatePreauthIntegrityHash (smb2, &in, err) < 0)
       {
-        err = stringf("SSETUP 2 - smb2_update_preauth_integrity_hash failed - %s", smb2->smb2_get_error());
+        err = stringf("SSETUP 2 - smb2UpdatePreauthIntegrityHash failed - %s", err.c_str());
         appData->setStatusMsg(SMB2_STATUS_INSUFFICIENT_RESOURCES, err);
         smb2->endSendReceive();
         return 0;

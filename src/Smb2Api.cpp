@@ -15,6 +15,8 @@
 #include "util.h"
 #include "Smb2FileData.h"
 
+#define FUNC stringf("%s: ", __func__)
+
 using namespace std;
 /*
  * Connect to the server and mount the share.
@@ -23,12 +25,11 @@ uint32_t
 Smb2Context::smb2_connect_share(string&   server,
                                 string&   share,
                                 string&   user,
-                                string&   err)
+                                string&   error)
 {
-  err = stringf("%s:", __func__);
-
-  if (smb2Socket->connect(this, server, err) != 0)
+  if (smb2Socket->connect(this, server, error) != 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -40,15 +41,17 @@ Smb2Context::smb2_connect_share(string&   server,
 
   if (Smb2BuildConnectRequest(server, share, user, &connData) != 0)
   {
-    err += connData.getErrorMsg();
+    error = FUNC + connData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0) {
+  if (this->wait_for_reply(error) < 0)
+  {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
-  err += connData.getErrorMsg();
+  error = FUNC + connData.getErrorMsg();
   return connData.ntStatus;
 }
 
@@ -58,6 +61,8 @@ Smb2Context::smb2_connect_share(string&   server,
 uint32_t
 Smb2Context::smb2_disconnect_share()
 {
+  string error;
+
   /* check to see if connected or just need to close the fd */
   if (!isConnected())
   {
@@ -72,7 +77,8 @@ Smb2Context::smb2_disconnect_share()
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0) {
+  if (this->wait_for_reply(error) < 0)
+  {
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -83,62 +89,56 @@ Smb2Context::smb2_disconnect_share()
  * opendir()
  */
 smb2dir *
-Smb2Context::smb2_querydir(string& path, string& pattern, string& err)
+Smb2Context::smb2_querydir(string& path, string& pattern, string& error)
 {
   smb2fh *fh = NULL;
 
-  err = stringf("%s:", __func__);
-
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return NULL;
   }
 
   if (path.empty())
     path = "";
 
-  string err2;
   fh = smb2_open_file(path, 0, 0,
                       SMB2_FILE_LIST_DIRECTORY | SMB2_FILE_READ_ATTRIBUTES,
                       SMB2_FILE_ATTRIBUTE_DIRECTORY,
                       SMB2_FILE_SHARE_READ | SMB2_FILE_SHARE_WRITE,
                       SMB2_FILE_OPEN,
                       SMB2_FILE_DIRECTORY_FILE,
-                      err2);
+                      error);
   if (fh == NULL)
   {
-    err += string("smb2Opendir failed - ") + err2;
+    error = FUNC + error;
     return NULL;
   }
 
   smb2dir *dir = nullptr;
-  dir = smb2_fquerydir(fh, pattern, err2);
+  dir = smb2_fquerydir(fh, pattern, error);
   if (dir == nullptr)
   {
-    err += string("smb2_fquerydir failed - ") + err2;
+    error = FUNC + error;
   }
 
-  smb2_close(fh, err2);
+  smb2_close(fh, error);
 
-  err += err2;
   return dir;
 }
 
 smb2dir *
-Smb2Context::smb2_fquerydir(smb2fh *fh, string& pattern, string& err)
+Smb2Context::smb2_fquerydir(smb2fh *fh, string& pattern, string& error)
 {
-  err = stringf("%s:", __func__);
-
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return NULL;
   }
 
   if (fh == NULL)
   {
-    err += string("Directory NOT opened to query");
+    error = FUNC + string("Directory NOT opened to query");
     return NULL;
   }
 
@@ -146,16 +146,17 @@ Smb2Context::smb2_fquerydir(smb2fh *fh, string& pattern, string& err)
 
   if (Smb2BuildQueryDirectoryRequest(fh, pattern, &qDirData) != 0)
   {
-    err += qDirData.getErrorMsg();
+    error = FUNC + qDirData.getErrorMsg();
     return NULL;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return NULL;
   }
 
-  err += qDirData.getErrorMsg();
+  error = FUNC + qDirData.getErrorMsg();
   return qDirData.getDir();
 }
 
@@ -171,13 +172,11 @@ Smb2Context::smb2_open_file(string&  path,
                             uint32_t share_access,
                             uint32_t create_disposition,
                             uint32_t create_options,
-                            string&  err)
+                            string&  error)
 {
-  err = stringf("%s:", __func__);
-
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return NULL;
   }
 
@@ -193,27 +192,26 @@ Smb2Context::smb2_open_file(string&  path,
                              create_options,
                              &createData) != 0)
   {
-    err += createData.getErrorMsg();
+    error = FUNC + createData.getErrorMsg();
     return NULL;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return NULL;
   }
 
-  err += createData.getErrorMsg();
+  error = FUNC + createData.getErrorMsg();
   return createData.getFH();
 }
 
 smb2fh *
-Smb2Context::smb2_open(string& path, int flags, string& err)
+Smb2Context::smb2_open(string& path, int flags, string& error)
 {
-  err = stringf("%s:", __func__);
-
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return NULL;
   }
 
@@ -275,35 +273,34 @@ Smb2Context::smb2_open(string& path, int flags, string& err)
                                    &createData);
   if (ret < 0)
   {
-    err += createData.getErrorMsg();
+    error = FUNC + createData.getErrorMsg();
     return NULL;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return NULL;
   }
 
-  err += createData.getErrorMsg();
+  error = FUNC + createData.getErrorMsg();
   return createData.getFH();
 }
 
 /* open_pipe()
  */
 smb2fh *
-Smb2Context::smb2_open_pipe(string& pipe, string& err)
+Smb2Context::smb2_open_pipe(string& pipe, string& error)
 {
-  err = stringf("%s:", __func__);
-
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return NULL;
   }
 
   if (pipe.empty())
   {
-    err += string("smb2_open_pipe:no pipe path provided");
+    error = FUNC + string("no pipe path provided");
     return NULL;
   }
 
@@ -353,16 +350,17 @@ Smb2Context::smb2_open_pipe(string& pipe, string& err)
                                    &createData);
   if (ret < 0)
   {
-    err += createData.getErrorMsg();
+    error = FUNC + createData.getErrorMsg();
     return NULL;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return NULL;
   }
 
-  err += createData.getErrorMsg();
+  error = FUNC + createData.getErrorMsg();
   return createData.getFH();
 }
 
@@ -370,13 +368,11 @@ Smb2Context::smb2_open_pipe(string& pipe, string& err)
  * close()
  */
 uint32_t
-Smb2Context::smb2_close(smb2fh *fh, std::string& err)
+Smb2Context::smb2_close(smb2fh *fh, std::string& error)
 {
-  err = stringf("%s:", __func__);
-
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -384,15 +380,17 @@ Smb2Context::smb2_close(smb2fh *fh, std::string& err)
 
   if (Smb2BuildCloseRequest(fh, &closeData) != 0)
   {
-    err += closeData.getErrorMsg();
+    error = FUNC + closeData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0) {
+  if (this->wait_for_reply(error) < 0)
+  {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
-  err += closeData.getErrorMsg();
+  error = FUNC + closeData.getErrorMsg();
   return closeData.ntStatus;
 }
 
@@ -400,29 +398,28 @@ Smb2Context::smb2_close(smb2fh *fh, std::string& err)
  * fsync()
  */
 uint32_t
-Smb2Context::smb2_fsync(smb2fh *fh, string& err)
+Smb2Context::smb2_fsync(smb2fh *fh, string& error)
 {
-  err = stringf("%s:", __func__);
-
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
   AppData flushData;
   if (Smb2BuildFlushRequest(fh, &flushData) != 0)
   {
-    err += flushData.getErrorMsg();
+    error = FUNC + flushData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
-  err += flushData.getErrorMsg();
+  error = FUNC + flushData.getErrorMsg();
   return flushData.ntStatus;
 }
 
@@ -430,16 +427,14 @@ Smb2Context::smb2_fsync(smb2fh *fh, string& err)
  * pread()
  */
 uint32_t
-Smb2Context::smb2_pread(smb2fh *fh, uint8_t *buf, uint32_t count, uint64_t offset, string& err)
+Smb2Context::smb2_pread(smb2fh *fh, uint8_t *buf, uint32_t count, uint64_t offset, string& error)
 {
-  err = stringf("%s:", __func__);
-
   fh->byte_count = 0;
   fh->bytes_remaining = 0;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -452,30 +447,29 @@ Smb2Context::smb2_pread(smb2fh *fh, uint8_t *buf, uint32_t count, uint64_t offse
   ReadData readData;
   if (Smb2BuildReadRequest(fh, buf, count, offset, &readData) != 0)
   {
-    err += readData.getErrorMsg();
+    error = FUNC + readData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
-  err += readData.getErrorMsg();
+  error = FUNC + readData.getErrorMsg();
   return readData.ntStatus;
 }
 
 uint32_t
-Smb2Context::smb2_pwrite(smb2fh *fh, uint8_t *buf, uint32_t count, uint64_t offset, string& err)
+Smb2Context::smb2_pwrite(smb2fh *fh, uint8_t *buf, uint32_t count, uint64_t offset, string& error)
 {
-  err = stringf("%s:", __func__);
-
   fh->byte_count = 0;
   fh->bytes_remaining = 0;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -488,30 +482,29 @@ Smb2Context::smb2_pwrite(smb2fh *fh, uint8_t *buf, uint32_t count, uint64_t offs
   WriteData writeData;
   if (Smb2BuildWriteRequest(fh, buf, count, offset, &writeData) != 0)
   {
-    err += writeData.getErrorMsg();
+    error = FUNC + writeData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
-  err += writeData.getErrorMsg();
+  error = FUNC + writeData.getErrorMsg();
   return writeData.ntStatus;
 }
 
 uint32_t
-Smb2Context::smb2_read(smb2fh *fh, uint8_t *buf, uint32_t count, string& err)
+Smb2Context::smb2_read(smb2fh *fh, uint8_t *buf, uint32_t count, string& error)
 {
-  err = stringf("%s:", __func__);
-
   fh->byte_count = 0;
   fh->bytes_remaining = 0;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -524,30 +517,29 @@ Smb2Context::smb2_read(smb2fh *fh, uint8_t *buf, uint32_t count, string& err)
   ReadData readData;
   if (Smb2BuildReadRequest(fh, buf, count, fh->offset, &readData) != 0)
   {
-    err += readData.getErrorMsg();
+    error = FUNC + readData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
-  err += readData.getErrorMsg();
+  error = FUNC + readData.getErrorMsg();
   return readData.ntStatus;
 }
 
 uint32_t
-Smb2Context::smb2_write(smb2fh *fh, uint8_t *buf, uint32_t count, string& err)
+Smb2Context::smb2_write(smb2fh *fh, uint8_t *buf, uint32_t count, string& error)
 {
-  err = stringf("%s:", __func__);
-
   fh->byte_count = 0;
   fh->bytes_remaining = 0;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -560,27 +552,26 @@ Smb2Context::smb2_write(smb2fh *fh, uint8_t *buf, uint32_t count, string& err)
   WriteData writeData;
   if (Smb2BuildWriteRequest(fh, buf, count, fh->offset, &writeData) != 0)
   {
-    err += writeData.getErrorMsg();
+    error = FUNC + writeData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
-  err += writeData.getErrorMsg();
+  error = FUNC + writeData.getErrorMsg();
   return writeData.ntStatus;
 }
 
 uint32_t
-Smb2Context::smb2_unlink(string& path, string& err)
+Smb2Context::smb2_unlink(string& path, string& error)
 {
-  err = stringf("%s:", __func__);
-
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -610,11 +601,13 @@ Smb2Context::smb2_unlink(string& path, string& err)
                                    &createData);
   if (ret < 0)
   {
-    err += createData.getErrorMsg();
+    error = FUNC + createData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0) {
+  if (this->wait_for_reply(error) < 0)
+  {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -622,24 +615,21 @@ Smb2Context::smb2_unlink(string& path, string& err)
   fh = createData.getFH();
   if (fh == nullptr)
   {
-    err += createData.getErrorMsg();
+    error = FUNC + createData.getErrorMsg();
     return createData.ntStatus;
   }
 
-  smb2_close(fh, err);
+  smb2_close(fh, error);
 
-  err += err;
   return createData.ntStatus;
 }
 
 uint32_t
-Smb2Context::smb2_rmdir(string& path, string& err)
+Smb2Context::smb2_rmdir(string& path, string& error)
 {
-  err = stringf("%s:", __func__);
-
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -668,12 +658,13 @@ Smb2Context::smb2_rmdir(string& path, string& err)
                                    &createData);
   if (ret < 0)
   {
-    err += createData.getErrorMsg();
+    error = FUNC + createData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -681,24 +672,21 @@ Smb2Context::smb2_rmdir(string& path, string& err)
   fh = createData.getFH();
   if (fh == nullptr)
   {
-    err += createData.getErrorMsg();
+    error = FUNC + createData.getErrorMsg();
     return createData.ntStatus;
   }
 
-  smb2_close(fh, err);
+  smb2_close(fh, error);
 
-  err+= err;
   return createData.ntStatus;
 }
 
 uint32_t
-Smb2Context::smb2_mkdir(string& path, string& err)
+Smb2Context::smb2_mkdir(string& path, string& error)
 {
-  err = stringf("%s:", __func__);
-
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -728,12 +716,13 @@ Smb2Context::smb2_mkdir(string& path, string& err)
 
   if (ret < 0)
   {
-    err += createData.getErrorMsg();
+    error = FUNC + createData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -741,12 +730,11 @@ Smb2Context::smb2_mkdir(string& path, string& err)
   fh = createData.getFH();
   if (fh == nullptr)
   {
-    err += createData.getErrorMsg();
+    error = FUNC + createData.getErrorMsg();
     return createData.ntStatus;
   }
 
-  smb2_close(fh, err);
-  err += err;
+  smb2_close(fh, error);
 
   return createData.ntStatus;
 }
@@ -754,15 +742,13 @@ Smb2Context::smb2_mkdir(string& path, string& err)
 uint32_t
 Smb2Context::smb2_fstat(smb2fh          *fh,
                     struct smb2_stat_64 *st,
-                    string&             err)
+                    string&             error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -772,12 +758,13 @@ Smb2Context::smb2_fstat(smb2fh          *fh,
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(fh, &info, &qiData) != 0)
   {
-    err += qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -800,15 +787,13 @@ Smb2Context::smb2_fstat(smb2fh          *fh,
 uint32_t
 Smb2Context::smb2_stat(string&             path,
                        struct smb2_stat_64 *st,
-                       string&             err)
+                       string&             error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -818,12 +803,13 @@ Smb2Context::smb2_stat(string&             path,
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(path, &info, &qiData) != 0)
   {
-    err += qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -846,15 +832,13 @@ Smb2Context::smb2_stat(string&             path,
 uint32_t
 Smb2Context::smb2_statvfs(string&             path,
                           struct smb2_statvfs *st,
-                          string&             err)
+                          string&             error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -864,12 +848,13 @@ Smb2Context::smb2_statvfs(string&             path,
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(path, &info, &qiData) != 0)
   {
-    err += qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -885,15 +870,13 @@ Smb2Context::smb2_statvfs(string&             path,
 uint32_t
 Smb2Context::smb2_getinfo_all(string&        path,
                               struct smb2_file_info_all *all_info,
-                              string&        err)
+                              string&        error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -903,12 +886,13 @@ Smb2Context::smb2_getinfo_all(string&        path,
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(path, &info, &qiData) != 0)
   {
-    err += qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -941,15 +925,13 @@ Smb2Context::smb2_getinfo_all(string&        path,
 uint32_t
 Smb2Context::smb2_fgetinfo_all(smb2fh         *fh,
                                struct smb2_file_info_all *all_info,
-                               string&        err)
+                               string&        error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -959,12 +941,13 @@ Smb2Context::smb2_fgetinfo_all(smb2fh         *fh,
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(fh, &info, &qiData) != 0)
   {
-    err += qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -996,21 +979,19 @@ Smb2Context::smb2_fgetinfo_all(smb2fh         *fh,
 uint32_t
 Smb2Context::smb2_setinfo_basic(string&        path,
                                 struct smb2_file_basic_info *basic_info,
-                                string&        err)
+                                string&        error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
   if (basic_info == NULL)
   {
-    err += string("%s : no info to set");
+    error = FUNC + string("no info to set");
     return SMB2_STATUS_INVALID_ARGUMENT;
   }
 
@@ -1022,12 +1003,13 @@ Smb2Context::smb2_setinfo_basic(string&        path,
   AppData setInfoData;
   if (Smb2BuildSetInforequest(path, &info, &setInfoData) != 0)
   {
-    err += setInfoData.getErrorMsg();
+    error = FUNC + setInfoData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -1037,21 +1019,19 @@ Smb2Context::smb2_setinfo_basic(string&        path,
 uint32_t
 Smb2Context::smb2_fsetinfo_basic(smb2fh         *fh,
                                  struct smb2_file_basic_info *basic_info,
-                                 string&        err)
+                                 string&        error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-     err += string("Not Connected to Server");
+     error = FUNC + string("Not Connected to Server");
      return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
   if (basic_info == NULL)
   {
-    err += string("No info to set");
+    error = FUNC + string("No info to set");
     return SMB2_STATUS_INVALID_ARGUMENT;
   }
 
@@ -1063,12 +1043,13 @@ Smb2Context::smb2_fsetinfo_basic(smb2fh         *fh,
   AppData setInfoData;
   if (Smb2BuildSetInforequest(fh, &info, &setInfoData) != 0)
   {
-    err += setInfoData.getErrorMsg();
+    error = FUNC + setInfoData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -1076,15 +1057,13 @@ Smb2Context::smb2_fsetinfo_basic(smb2fh         *fh,
 }
 
 uint32_t
-Smb2Context::smb2_rename(string& oldpath, string& newpath, string& err)
+Smb2Context::smb2_rename(string& oldpath, string& newpath, string& error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -1097,12 +1076,13 @@ Smb2Context::smb2_rename(string& oldpath, string& newpath, string& err)
   AppData setInfoData;
   if (Smb2BuildSetInforequest(oldpath, &info, &setInfoData) != 0)
   {
-    err += setInfoData.getErrorMsg();
+    error = FUNC + setInfoData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -1110,15 +1090,13 @@ Smb2Context::smb2_rename(string& oldpath, string& newpath, string& err)
 }
 
 uint32_t
-Smb2Context::smb2_truncate(string& path, uint64_t length, string& err)
+Smb2Context::smb2_truncate(string& path, uint64_t length, string& error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -1130,12 +1108,13 @@ Smb2Context::smb2_truncate(string& path, uint64_t length, string& err)
   AppData setInfoData;
   if (Smb2BuildSetInforequest(path, &info, &setInfoData) != 0)
   {
-    err += setInfoData.getErrorMsg();
+    error = FUNC + setInfoData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -1143,15 +1122,13 @@ Smb2Context::smb2_truncate(string& path, uint64_t length, string& err)
 }
 
 uint32_t
-Smb2Context::smb2_ftruncate(smb2fh *fh, uint64_t length, string& err)
+Smb2Context::smb2_ftruncate(smb2fh *fh, uint64_t length, string& error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -1163,39 +1140,41 @@ Smb2Context::smb2_ftruncate(smb2fh *fh, uint64_t length, string& err)
   AppData setInfoData;
   if (Smb2BuildSetInforequest(fh, &info, &setInfoData) != 0)
   {
-    err += setInfoData.getErrorMsg();
+    error = FUNC + setInfoData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
-  err += setInfoData.getErrorMsg();
+  if (setInfoData.ntStatus != SMB2_STATUS_SUCCESS)
+    error = FUNC + setInfoData.getErrorMsg();
+
   return setInfoData.ntStatus;
 }
 
 uint32_t
-Smb2Context::smb2_echo(string& err)
+Smb2Context::smb2_echo(string& error)
 {
-  err = stringf("%s:", __func__);
-
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
   AppData echoData;
   if (Smb2BuildEchoRequest(&echoData) != 0)
   {
-    err += echoData.getErrorMsg();
+    error = FUNC + echoData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -1205,10 +1184,8 @@ Smb2Context::smb2_echo(string& err)
 #define DEBUG
 
 uint32_t
-Smb2Context::smb2_get_security(string& path, uint8_t **buf, uint32_t *buf_len, string& err)
+Smb2Context::smb2_get_security(string& path, uint8_t **buf, uint32_t *buf_len, string& error)
 {
-  err = stringf("%s:", __func__);
-
   int sts = 0;
   smb2_file_info info;
 
@@ -1217,7 +1194,7 @@ Smb2Context::smb2_get_security(string& path, uint8_t **buf, uint32_t *buf_len, s
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -1227,17 +1204,19 @@ Smb2Context::smb2_get_security(string& path, uint8_t **buf, uint32_t *buf_len, s
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(path, &info, &qiData) != 0)
   {
-    err += qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
   if (qiData.ntStatus != SMB2_STATUS_SUCCESS)
   {
+    error = FUNC + qiData.getErrorMsg();
     return qiData.ntStatus;
   }
 
@@ -1248,15 +1227,14 @@ Smb2Context::smb2_get_security(string& path, uint8_t **buf, uint32_t *buf_len, s
   relative_sec = (uint8_t *) calloc(1, relative_sec_size);
   if (relative_sec == NULL)
   {
-    err += string("No memory to get security descriptor");
+    error = FUNC + string("No memory to get security descriptor");
     return SMB2_STATUS_NO_MEMORY;
   }
 retry:
-  string err2;
   if ((sts = smb2EncodeSecurityDescriptor(info.u_info.security_info,
                                           relative_sec,
                                           &relative_sec_size,
-                                          err2)) < 0)
+                                          error)) < 0)
   {
     if (sts == -9)
     {
@@ -1264,13 +1242,13 @@ retry:
       relative_sec = (uint8_t *) realloc(relative_sec, relative_sec_size);
       if (relative_sec == NULL)
       {
-        err += string("Failed to allocate memory for security descriptor");
+        error = FUNC + string("Failed to allocate memory for security descriptor");
         return SMB2_STATUS_NO_MEMORY;
       }
       goto retry;
     }
 
-    err += stringf("Failed to encode security descriptor : %s", err2.c_str());
+    error = FUNC + error;
     return SMB2_STATUS_INTERNAL_ERROR;
   }
 
@@ -1284,10 +1262,8 @@ retry:
 }
 
 uint32_t
-Smb2Context::smb2_fget_security(smb2fh *fh, uint8_t **buf, uint32_t *buf_len, string& err)
+Smb2Context::smb2_fget_security(smb2fh *fh, uint8_t **buf, uint32_t *buf_len, string& error)
 {
-  err = stringf("%s:", __func__);
-
   int sts = 0;
   smb2_file_info info;
 
@@ -1296,7 +1272,7 @@ Smb2Context::smb2_fget_security(smb2fh *fh, uint8_t **buf, uint32_t *buf_len, st
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -1306,17 +1282,19 @@ Smb2Context::smb2_fget_security(smb2fh *fh, uint8_t **buf, uint32_t *buf_len, st
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(fh, &info, &qiData) != 0)
   {
-    err += qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
   if (qiData.ntStatus != SMB2_STATUS_SUCCESS)
   {
+    error = FUNC + qiData.getErrorMsg();
     return qiData.ntStatus;
   }
 
@@ -1327,16 +1305,15 @@ Smb2Context::smb2_fget_security(smb2fh *fh, uint8_t **buf, uint32_t *buf_len, st
   relative_sec = (uint8_t *) calloc(1, relative_sec_size);
   if (relative_sec == NULL)
   {
-    err += string("No memory to get security descriptor");
+    error = FUNC + string("No memory to get security descriptor");
     return SMB2_STATUS_NO_MEMORY;
   }
 retry:
-  string err2;
   syslog(LOG_NOTICE, "Using buffer, length - %d\n", relative_sec_size);
   if ((sts = smb2EncodeSecurityDescriptor(info.u_info.security_info,
                                           relative_sec,
                                           &relative_sec_size,
-                                          err2)) < 0)
+                                          error)) < 0)
   {
     if (sts == -9)
     {
@@ -1344,13 +1321,13 @@ retry:
       relative_sec = (uint8_t *) realloc(relative_sec, relative_sec_size);
       if (relative_sec == NULL)
       {
-        err += string("Failed to allocate memory for security descriptor");
+        error = FUNC + string("Failed to allocate memory for security descriptor");
         return SMB2_STATUS_NO_MEMORY;
       }
       goto retry;
     }
 
-    err += stringf("Failed to encode security descriptor : %s", err2.c_str());
+    error = FUNC + error;
     return SMB2_STATUS_INTERNAL_ERROR;
   }
 
@@ -1364,16 +1341,13 @@ retry:
 }
 
 uint32_t
-Smb2Context::smb2_set_security(string& path, uint8_t *buf, uint32_t buf_len, string& err)
+Smb2Context::smb2_set_security(string& path, uint8_t *buf, uint32_t buf_len, string& error)
 {
-  err = stringf("%s:", __func__);
-
-  string err2;
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -1384,9 +1358,9 @@ Smb2Context::smb2_set_security(string& path, uint8_t *buf, uint32_t buf_len, str
   vec.len = buf_len;
 
   secdesc = new smb2_security_descriptor();
-  if (smb2DecodeSecDescInternal(secdesc, &vec, err2))
+  if (smb2DecodeSecDescInternal(secdesc, &vec, error))
   {
-    err += stringf("could not decode security descriptor. %s", err2.c_str());
+    error = FUNC + error;
     return SMB2_STATUS_INTERNAL_ERROR;
   }
   printSecurityDescriptor(secdesc);
@@ -1402,29 +1376,30 @@ Smb2Context::smb2_set_security(string& path, uint8_t *buf, uint32_t buf_len, str
   AppData setInfoData;
   if (Smb2BuildSetInforequest(path, &info, &setInfoData) != 0)
   {
-    err += setInfoData.getErrorMsg();
+    error = FUNC + setInfoData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
+
+  if (setInfoData.ntStatus != SMB2_STATUS_SUCCESS)
+    error = FUNC + setInfoData.getErrorMsg();
 
   return setInfoData.ntStatus;
 }
 
 uint32_t
-Smb2Context::smb2_fset_security(smb2fh *fh, uint8_t *buf, uint32_t buf_len, string& err)
+Smb2Context::smb2_fset_security(smb2fh *fh, uint8_t *buf, uint32_t buf_len, string& error)
 {
-  err = stringf("%s:", __func__);
-
-  string err2;
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -1435,9 +1410,9 @@ Smb2Context::smb2_fset_security(smb2fh *fh, uint8_t *buf, uint32_t buf_len, stri
   vec.len = buf_len;
 
   secdesc = new smb2_security_descriptor();
-  if (smb2DecodeSecDescInternal(secdesc, &vec, err2))
+  if (smb2DecodeSecDescInternal(secdesc, &vec, error))
   {
-    err += stringf("could not decode security descriptor. %s", err2.c_str());
+    error = FUNC + error;
     return SMB2_STATUS_INTERNAL_ERROR;
   }
   printSecurityDescriptor(secdesc);
@@ -1453,14 +1428,18 @@ Smb2Context::smb2_fset_security(smb2fh *fh, uint8_t *buf, uint32_t buf_len, stri
   AppData setInfoData;
   if (Smb2BuildSetInforequest(fh, &info, &setInfoData) != 0)
   {
-    err += setInfoData.getErrorMsg();
+    error = FUNC + setInfoData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
+
+  if (setInfoData.ntStatus != SMB2_STATUS_SUCCESS)
+    error = FUNC + setInfoData.getErrorMsg();
 
   return setInfoData.ntStatus;
 }
@@ -1473,13 +1452,11 @@ Smb2Context::smb2_ioctl(smb2fh *fh,
                         uint32_t ioctl_ctl, uint32_t ioctl_flags,
                         uint8_t *input_buffer, uint32_t input_count,
                         uint8_t *output_buffer, uint32_t *output_count,
-                        string& err)
+                        string& error)
 {
-  err = stringf("%s:", __func__);
-
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -1488,14 +1465,18 @@ Smb2Context::smb2_ioctl(smb2fh *fh,
                             input_buffer, input_count,
                             output_buffer, output_count, &ioctlData) != 0)
   {
-    err += ioctlData.getErrorMsg();
+    error = FUNC + ioctlData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
+
+  if (ioctlData.ntStatus != SMB2_STATUS_SUCCESS)
+    error = FUNC + ioctlData.getErrorMsg();
 
   return ioctlData.ntStatus;
 }
@@ -1503,7 +1484,7 @@ Smb2Context::smb2_ioctl(smb2fh *fh,
 /* share_enum()
  */
 int
-Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type, smb2_shares& shares, string& err)
+Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type, smb2_shares& shares, string& error)
 {
   uint32_t  status = 0;
   struct    smb2fh *fh = NULL;
@@ -1521,34 +1502,32 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
   uint16_t max_xmit_frag = 0;
   uint16_t max_recv_frag = 0;
 
-  err = stringf("%s:", __func__);
+  string error2;
 
   if (server.empty())
   {
-    err += string("server not specified");
+    error = FUNC + string("server not specified");
     return -1;
   }
   if (user.empty())
   {
-    err += string("user not specified");
+    error = FUNC + string("user not specified");
     return -1;
   }
 
-  string err2;
-
   this->use_cached_creds = true;
   std::string ipc_share = "IPC$";
-  if (smb2_connect_share(server, ipc_share, user, err2) !=0)
+  if (smb2_connect_share(server, ipc_share, user, error) !=0)
   {
-    err += err2;
+    error = FUNC + error;
     return -ENOMEM;
   }
 
   std::string srvsvc_pipe = std::string("srvsvc");
-  fh = smb2_open_pipe(srvsvc_pipe, err2);
+  fh = smb2_open_pipe(srvsvc_pipe, error);
   if (fh == NULL)
   {
-    err += "Failed to open SRVSVC pipe:" + err2;
+    error = FUNC + error;
     smb2_disconnect_share();
     return -1;
   }
@@ -1566,19 +1545,19 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
                       SMB2_0_IOCTL_IS_FSCTL,
                       ioctl_IN, ioctl_IN_Cnt,
                       ioctl_OUT, &ioctl_OUT_Cnt,
-                      err2);
+                      error);
   if (status != SMB2_STATUS_SUCCESS)
   {
-    err += "IOCTL FAILED:" + err2;
-    smb2_close(fh, err2);
+    error = FUNC + error;
+    smb2_close(fh, error2);
     smb2_disconnect_share();
     return -1;
   }
 
   if (dcerpc_get_response_header(ioctl_OUT, ioctl_OUT_Cnt, &rsp_hdr) < 0)
   {
-    err += string("failed to parse dcerpc response header");
-    smb2_close(fh, err2);
+    error = FUNC + string("Failed to parse dcerpc response header");
+    smb2_close(fh, error2);
     smb2_disconnect_share();
     return -1;
   }
@@ -1587,13 +1566,13 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
   {
     if (dcerpc_get_bind_nack_response(ioctl_OUT, ioctl_OUT_Cnt, &nack) < 0)
     {
-      err += string("failed to parse dcerpc BINDNACK response");
-      smb2_close(fh, err2);
+      error = FUNC + string("Failed to parse dcerpc BINDNACK response");
+      smb2_close(fh, error2);
       smb2_disconnect_share();
       return -1;
     }
-    err += stringf("dcerpc BINDNACK reason : %s", dcerpc_get_reject_reason(nack.reject_reason));
-    smb2_close(fh, err2);
+    error = FUNC + stringf("dcerpc BINDNACK reason : %s", dcerpc_get_reject_reason(nack.reject_reason));
+    smb2_close(fh, error2);
     smb2_disconnect_share();
     return -1;
   }
@@ -1601,8 +1580,8 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
   {
     if (dcerpc_get_bind_ack_response(ioctl_OUT, ioctl_OUT_Cnt, &ack) < 0)
     {
-      err += string("failed to parse dcerpc BINDACK response");
-      smb2_close(fh, err2);
+      error = FUNC + string("Failed to parse dcerpc BINDACK response");
+      smb2_close(fh, error2);
       smb2_disconnect_share();
       return -1;
     }
@@ -1649,9 +1628,9 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
                                            shinfo_type,
                                            resumeHandle,
                                            netShareEnumBuf+offset,
-                                           &payloadlen, err2) < 0)
+                                           &payloadlen, error2) < 0)
     {
-      err += err2;
+      error = FUNC + error2;
       goto error;
     }
 
@@ -1661,7 +1640,7 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
 
     if (offset > max_xmit_frag)
     {
-      err += string("IOCTL Payload size is larger than max_xmit_frag");
+      error = FUNC + string("IOCTL Payload size is larger than max_xmit_frag");
       goto error;
     }
 
@@ -1670,10 +1649,10 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
                         SMB2_0_IOCTL_IS_FSCTL,
                         netShareEnumBuf, offset,
                         output_buf, &output_count,
-                        err2);
+                        error2);
     if (status != SMB2_STATUS_SUCCESS)
     {
-      err += "IOCTL FAILED2" + err2;
+      error = FUNC + "IOCTL FAILED2" + error2;
       goto error;
     }
     offset = 0;
@@ -1682,16 +1661,16 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
     sharesBuff = (uint8_t*) malloc(output_count);
     if (sharesBuff == NULL)
     {
-      err += "Failed to allocate shares buffer";
+      error = FUNC + "Failed to allocate shares buffer";
       goto error;
     }
     memcpy(sharesBuff, &output_buf[0], output_count);
     sharesBuffLen += output_count;
 
     /* Response parsing */
-    if (dcerpc_parse_Operation_Response(sharesBuff, sharesBuffLen, &dceOpRes, &status, err2) < 0)
+    if (dcerpc_parse_Operation_Response(sharesBuff, sharesBuffLen, &dceOpRes, &status, error2) < 0)
     {
-      err += stringf("dcerpc_parse_Operation_Response failed : status = %x, error = %s", status, err2.c_str());
+      error = FUNC + stringf("dcerpc_parse_Operation_Response failed : status = %x, error = %s", status, error2.c_str());
       goto error;
     }
 
@@ -1706,22 +1685,22 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
       fragmentBuf = (uint8_t *)calloc(1, max_recv_frag);
       if (fragmentBuf == NULL)
       {
-        err += string("failed to allocate fragmentBuf");
+        error = FUNC + string("Failed to allocate fragmentBuf");
         goto error;
       }
-      status = smb2_pread(fh, fragmentBuf, max_recv_frag, 0, err2);
+      status = smb2_pread(fh, fragmentBuf, max_recv_frag, 0, error2);
       if (status != SMB2_STATUS_SUCCESS && status != SMB2_STATUS_END_OF_FILE)
       {
-        err += string("failed to read remaining frags");
+        error = FUNC + string("Failed to read remaining frags - ") + error2;
         goto error;
       }
       bytes_read = fh->byte_count;
       if (dcerpc_parse_Operation_Response(fragmentBuf,
                                           bytes_read,
                                           &dceOpRes2,
-                                          &status, err2) < 0)
+                                          &status, error2) < 0)
       {
-        err += stringf("dcerpc_parse_Operation_Response -2 failed : status = %x, error = %s", status, err2.c_str());
+        error = FUNC + stringf("dcerpc_parse_Operation_Response -2 failed : status = %x, error = %s", status, error2.c_str());
         goto error;
       }
       last_frag = dceOpRes2.dceRpcHdr.packet_flags & RPC_FLAG_LAST_FRAG;
@@ -1731,7 +1710,7 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
       sharesBuff = (uint8_t*)realloc(sharesBuff, sharesBuffLen+frag_len);
       if (sharesBuff == NULL)
       {
-        err += string("Failed to re-allocate sharesBuff");
+        error = FUNC + string("Failed to re-allocate sharesBuff");
         goto error;
       }
       memcpy(&sharesBuff[sharesBuffLen],
@@ -1750,7 +1729,7 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
     srvs_sts = srvsvc_get_NetrShareEnum_status(sharesBuff+offset, payloadlen);
     if ( srvs_sts != 0x00000000 )
     {
-      err += stringf("SRVSVC NetrShareEnum Failed with error %x", srvs_sts);
+      error = FUNC + stringf("SRVSVC NetrShareEnum Failed with error %x", srvs_sts);
       goto error;
     }
     payloadlen -= sizeof(uint32_t);
@@ -1761,9 +1740,9 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
                                            &total_share_count,
                                            &resumeHandlePtr,
                                            &resumeHandle,
-                                           shares, err2) < 0)
+                                           shares, error2) < 0)
     {
-      err += stringf("srvsvc_parse_NetrShareEnumResponse failed : %s", err2.c_str());
+      error = FUNC + stringf("srvsvc_parse_NetrShareEnumResponse failed : %s", error2.c_str());
       goto error;
     }
     shares_read += share_count;
@@ -1771,7 +1750,7 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
 
   free(sharesBuff); sharesBuff = NULL;
   /* close the pipe  & disconnect */
-  smb2_close(fh, err2);
+  smb2_close(fh, error2);
   smb2_disconnect_share();
   return 0;
 
@@ -1783,7 +1762,7 @@ error:
     free(fragmentBuf);
   }
   /* close the pipe  & disconnect */
-  smb2_close(fh, err2);
+  smb2_close(fh, error2);
   smb2_disconnect_share();
   return -1;
 }
@@ -1791,15 +1770,13 @@ error:
 uint32_t
 Smb2Context::smb2_getinfo_basic(string& path,
                                 struct smb2_file_basic_info *basic_info,
-                                string& err)
+                                string& error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -1809,16 +1786,20 @@ Smb2Context::smb2_getinfo_basic(string& path,
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(path, &info, &qiData) != 0)
   {
-    err += qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
   *basic_info = info.u_info.basic_info;
+
+  if (qiData.ntStatus != SMB2_STATUS_SUCCESS)
+    error = FUNC + qiData.getErrorMsg();
 
   return qiData.ntStatus;
 }
@@ -1826,15 +1807,13 @@ Smb2Context::smb2_getinfo_basic(string& path,
 uint32_t
 Smb2Context::smb2_fgetinfo_basic(smb2fh         *fh,
                                  struct smb2_file_basic_info *basic_info,
-                                 string&        err)
+                                 string&        error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -1844,16 +1823,20 @@ Smb2Context::smb2_fgetinfo_basic(smb2fh         *fh,
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(fh, &info, &qiData) != 0)
   {
-    err += qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
   *basic_info = info.u_info.basic_info;
+
+  if (qiData.ntStatus != SMB2_STATUS_SUCCESS)
+    error = FUNC + qiData.getErrorMsg();
 
   return qiData.ntStatus;
 }
@@ -1861,15 +1844,13 @@ Smb2Context::smb2_fgetinfo_basic(smb2fh         *fh,
 uint32_t
 Smb2Context::smb2_getinfo_standard(string&   path,
                                    struct smb2_file_standard_info *standard_info,
-                                   string&        err)
+                                   string&        error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -1879,31 +1860,33 @@ Smb2Context::smb2_getinfo_standard(string&   path,
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(path, &info, &qiData) != 0)
   {
-    err += qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
   *standard_info = info.u_info.standard_info;
+  if (qiData.ntStatus != SMB2_STATUS_SUCCESS)
+    error = FUNC + qiData.getErrorMsg();
+
   return qiData.ntStatus;
 }
 
 uint32_t
 Smb2Context::smb2_fgetinfo_standard(smb2fh *fh,
                                     struct smb2_file_standard_info *standard_info,
-                                    string&        err)
+                                    string&        error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -1913,31 +1896,33 @@ Smb2Context::smb2_fgetinfo_standard(smb2fh *fh,
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(fh, &info, &qiData) != 0)
   {
-    err += qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
   *standard_info = info.u_info.standard_info;
+  if (qiData.ntStatus != SMB2_STATUS_SUCCESS)
+    error = FUNC + qiData.getErrorMsg();
+
   return qiData.ntStatus;
 }
 
 uint32_t
 Smb2Context::smb2_getinfo_extended(string&   path,
                                    struct smb2_file_extended_info **extended_info,
-                                   string&        err)
+                                   string&        error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -1948,12 +1933,13 @@ Smb2Context::smb2_getinfo_extended(string&   path,
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(path, &info, &qiData) != 0)
   {
-    err+= qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -1961,21 +1947,23 @@ Smb2Context::smb2_getinfo_extended(string&   path,
   {
     *extended_info = info.u_info.extended_info;
   }
+
+  if (qiData.ntStatus != SMB2_STATUS_SUCCESS)
+    error = FUNC + qiData.getErrorMsg();
+
   return qiData.ntStatus;
 }
 
 uint32_t
 Smb2Context::smb2_fgetinfo_extended(smb2fh *fh,
                                     struct smb2_file_extended_info **extended_info,
-                                    string&         err)
+                                    string&         error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -1986,12 +1974,13 @@ Smb2Context::smb2_fgetinfo_extended(smb2fh *fh,
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(fh, &info, &qiData) != 0)
   {
-    err += qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -1999,6 +1988,10 @@ Smb2Context::smb2_fgetinfo_extended(smb2fh *fh,
   {
     *extended_info = info.u_info.extended_info;
   }
+
+  if (qiData.ntStatus != SMB2_STATUS_SUCCESS)
+    error = FUNC + qiData.getErrorMsg();
+
   return qiData.ntStatus;
 }
 
@@ -2032,21 +2025,19 @@ uint32_t
 Smb2Context::smb2_setinfo_extended(string&   path,
                                    struct smb2_file_extended_info* extended_info,
                                    const int count,
-                                   string&   err)
+                                   string&   error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += "Not Connected to Server";
+    error = FUNC + "Not Connected to Server";
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
   if (extended_info == NULL)
   {
-    err += "no info to set";
+    error = FUNC + "no info to set";
     return SMB2_STATUS_INVALID_ARGUMENT;
   }
 
@@ -2067,14 +2058,18 @@ Smb2Context::smb2_setinfo_extended(string&   path,
   AppData setInfoData;
   if (Smb2BuildSetInforequest(path, &info, &setInfoData) != 0)
   {
-    err += setInfoData.getErrorMsg();
+    error = FUNC + setInfoData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
+
+  if (setInfoData.ntStatus != SMB2_STATUS_SUCCESS)
+    error = FUNC + setInfoData.getErrorMsg();
 
   return setInfoData.ntStatus;
 }
@@ -2083,21 +2078,19 @@ uint32_t
 Smb2Context::smb2_fsetinfo_extended(smb2fh         *fh,
                                     struct smb2_file_extended_info* extended_info,
                                     const int      count,
-                                    string&        err)
+                                    string&        error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += "Not Connected to Server";
+    error = FUNC + "Not Connected to Server";
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
   if (extended_info == NULL)
   {
-    err += string("no info to set");
+    error = FUNC + string("no info to set");
     return SMB2_STATUS_INVALID_ARGUMENT;
   }
 
@@ -2118,14 +2111,18 @@ Smb2Context::smb2_fsetinfo_extended(smb2fh         *fh,
   AppData setInfoData;
   if (Smb2BuildSetInforequest(fh, &info, &setInfoData) != 0)
   {
-    err += setInfoData.getErrorMsg();
+    error = FUNC + setInfoData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
+
+  if (setInfoData.ntStatus != SMB2_STATUS_SUCCESS)
+    error = FUNC + setInfoData.getErrorMsg();
 
   return setInfoData.ntStatus;
 }
@@ -2133,15 +2130,13 @@ Smb2Context::smb2_fsetinfo_extended(smb2fh         *fh,
 uint32_t
 Smb2Context::smb2_getinfo_stream(string&   path,
                                  struct smb2_file_stream_info **stream_info,
-                                 string&        err)
+                                 string&        error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -2152,12 +2147,13 @@ Smb2Context::smb2_getinfo_stream(string&   path,
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(path, &info, &qiData) != 0)
   {
-    err += qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -2165,21 +2161,23 @@ Smb2Context::smb2_getinfo_stream(string&   path,
   {
     *stream_info = info.u_info.stream_info;
   }
+
+  if (qiData.ntStatus != SMB2_STATUS_SUCCESS)
+    error = FUNC + qiData.getErrorMsg();
+
   return qiData.ntStatus;
 }
 
 uint32_t
 Smb2Context::smb2_fgetinfo_stream(smb2fh         *fh,
                                   struct smb2_file_stream_info **stream_info,
-                                  string&        err)
+                                  string&        error)
 {
-  err = stringf("%s:", __func__);
-
   smb2_file_info info;
 
   if (!isConnected())
   {
-    err += string("Not Connected to Server");
+    error = FUNC + string("Not Connected to Server");
     return SMB2_STATUS_CONNECTION_DISCONNECTED;
   }
 
@@ -2190,12 +2188,13 @@ Smb2Context::smb2_fgetinfo_stream(smb2fh         *fh,
   QueryInfoData qiData;
   if (Smb2BuildQueryInfoRequest(fh, &info, &qiData) != 0)
   {
-    err += qiData.getErrorMsg();
+    error = FUNC + qiData.getErrorMsg();
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply() < 0)
+  if (this->wait_for_reply(error) < 0)
   {
+    error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
   }
 
@@ -2203,16 +2202,19 @@ Smb2Context::smb2_fgetinfo_stream(smb2fh         *fh,
   {
     *stream_info = info.u_info.stream_info;
   }
+
+  if (qiData.ntStatus != SMB2_STATUS_SUCCESS)
+    error = FUNC + qiData.getErrorMsg();
+
   return qiData.ntStatus;
 }
 
 int
-Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_t **sid, string& err)
+Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_t **sid, string& error)
 {
 #define	MAX_IN_BUF_SIZE		(1 * 1024)
 #define	MAX_OUT_BUF_SIZE	(64 * 1024)
   uint32_t   status = 0;
-  std::string err2;
   struct     smb2fh *fh = NULL;
   uint8_t    dceRpcBuf[MAX_IN_BUF_SIZE] = {0};
   uint32_t   bindReqSize = 0;
@@ -2236,37 +2238,37 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
 
   PolicyHandle pHandle = {0};
 
-  err = stringf("%s:", __func__);
-
   if (server.empty())
   {
-    err += string("server not specified");
+    error = FUNC + string("server not specified");
     return -1;
   }
   if (user.empty())
   {
-    err += string("user not specified");
+    error = FUNC + string("user not specified");
     return -1;
   }
   if (domain.empty())
   {
-    err += string("domain not specified");
+    error = FUNC + string("domain not specified");
     return -1;
   }
 
+  std::string error2;
+
   this->use_cached_creds = true;
   std::string ipc_share = "IPC$";
-  if (smb2_connect_share(server, ipc_share, user, err2) !=0)
+  if (smb2_connect_share(server, ipc_share, user, error2) !=0)
   {
-    err += err2;
+    error = FUNC + error2;
     return -ENOMEM;
   }
 
   std::string lsarpc_pipe = std::string("lsarpc");
-  fh = smb2_open_pipe(lsarpc_pipe, err2);
+  fh = smb2_open_pipe(lsarpc_pipe, error2);
   if (fh == NULL)
   {
-    err += "Failed to open LSARPC pipe: " + err2;
+    error = FUNC + "Failed to open LSARPC pipe: " + error2;
     smb2_disconnect_share();
     return -1;
   }
@@ -2282,16 +2284,16 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
                       FSCTL_PIPE_TRANSCEIVE,
                       SMB2_0_IOCTL_IS_FSCTL,
                       dceRpcBuf, bindReqSize,
-                      output_buf, &output_count, err2);
+                      output_buf, &output_count, error2);
   if (status != SMB2_STATUS_SUCCESS)
   {
-    err += "IOCTL Failed for bind:" + err2;
+    error = FUNC + "IOCTL Failed for bind:" + error2;
     goto error;
   }
 
   if (dcerpc_get_response_header(output_buf, output_count, &rsp_hdr) < 0)
   {
-    err += string("Failed to parse dcerpc response header");
+    error = FUNC + string("Failed to parse dcerpc response header");
     goto error;
   }
 
@@ -2299,17 +2301,17 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
   {
     if (dcerpc_get_bind_nack_response(output_buf, output_count, &nack) < 0)
     {
-      err += string("Failed to parse dcerpc BINDNACK response");
+      error = FUNC + string("Failed to parse dcerpc BINDNACK response");
       goto error;
     }
-    err += stringf("dcerpc BINDNACK reason : %s", dcerpc_get_reject_reason(nack.reject_reason));
+    error = FUNC + stringf("dcerpc BINDNACK reason : %s", dcerpc_get_reject_reason(nack.reject_reason));
     goto error;
   }
   else if (rsp_hdr.packet_type == RPC_PACKET_TYPE_BINDACK)
   {
     if (dcerpc_get_bind_ack_response(output_buf, output_count, &ack) < 0)
     {
-      err += string("Failed to parse dcerpc BINDACK response");
+      error = FUNC + string("Failed to parse dcerpc BINDACK response");
       goto error;
     }
     /* save the max xmit and recv frag details */
@@ -2329,7 +2331,7 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
   lsarpc_create_OpenPolicy2Req(server, RIGHT_TO_LOOKUP_NAMES,
                                dceRpcBuf+offset,
                                MAX_IN_BUF_SIZE-offset,
-                               &bytes_used, err2);
+                               &bytes_used, error2);
   offset += bytes_used;
 
   /* opnum - 44 - for OpenPolicy2 */
@@ -2337,7 +2339,7 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
 
   if (offset > max_xmit_frag)
   {
-    err += string("IOCTL Payload size is larger than max_xmit_frag");
+    error = FUNC + string("IOCTL Payload size is larger than max_xmit_frag");
     goto error;
   }
 
@@ -2345,19 +2347,19 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
                       FSCTL_PIPE_TRANSCEIVE,
                       SMB2_0_IOCTL_IS_FSCTL,
                       dceRpcBuf, offset,
-                      output_buf, &output_count, err2);
+                      output_buf, &output_count, error2);
   if (status != SMB2_STATUS_SUCCESS)
   {
-    err += "IOCTL Failed for OpenPolicy2:" + err2;
+    error = FUNC + "IOCTL Failed for OpenPolicy2:" + error2;
     goto error;
   }
   if (dcerpc_parse_Operation_Response(output_buf,
                                       output_count,
                                       &dceOpRes2,
-                                      &status, err2) < 0)
+                                      &status, error2) < 0)
   {
-    err += stringf("Failed to parse dcerpc response for OpenPolicy2 : status = %x, error = %s",
-                   status, err2.c_str());
+    error = FUNC + stringf("Failed to parse dcerpc response for OpenPolicy2 : status = %x, error = %s",
+                   status, error2.c_str());
     goto error;
   }
 
@@ -2369,7 +2371,7 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
                                   &pHandle,
                                   &status) < 0)
   {
-    err += stringf("lsarpc_parse_OpenPolicy2Res failed : %x", status);
+    error = FUNC + stringf("lsarpc_parse_OpenPolicy2Res failed : %x", status);
     goto error;
   }
 
@@ -2385,9 +2387,9 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
   if (lsarpc_create_LookUpNamesReq(&pHandle, user, domain,
                                    dceRpcBuf+offset,
                                    MAX_IN_BUF_SIZE-offset,
-                                   &bytes_used, err2) < 0)
+                                   &bytes_used, error2) < 0)
   {
-    err += string("Create LookupNames req failed:") + err2;
+    error = FUNC + string("Create LookupNames req failed:") + error2;
     goto error;
   }
   offset += bytes_used;
@@ -2397,7 +2399,7 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
 
   if (offset > max_xmit_frag)
   {
-    err += string("smb2_lookUpSid: IOCTL Payload size is larger than max_xmit_frag");
+    error = FUNC + string("IOCTL Payload size is larger than max_xmit_frag");
     goto error;
   }
 
@@ -2405,19 +2407,19 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
                       FSCTL_PIPE_TRANSCEIVE,
                       SMB2_0_IOCTL_IS_FSCTL,
                       dceRpcBuf, offset,
-                      output_buf, &output_count, err2);
+                      output_buf, &output_count, error2);
   if (status != SMB2_STATUS_SUCCESS)
   {
-    err += stringf("smb2_ioctl failed for LookupNames : %s", err2.c_str());
+    error = FUNC + stringf("IOCTL Failed for LookupNames : %s", error2.c_str());
     goto error;
   }
   if (dcerpc_parse_Operation_Response(output_buf,
                                       output_count,
                                       &dceOpRes2,
-                                      &status, err2) < 0)
+                                      &status, error2) < 0)
   {
-    err += stringf("Failed to parse dcerpc response for LookupNames : status = %x, error = %s",
-                   status, err2.c_str());
+    error = FUNC + stringf("Failed to parse dcerpc response for LookupNames : status = %x, error = %s",
+                   status, error2.c_str());
     goto error;
   }
 
@@ -2426,10 +2428,10 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
   if (lsarpc_parse_LookupNamesRes(output_buf+offset,
                                   output_count-offset,
                                   sid,
-                                  &status, err2) < 0)
+                                  &status, error2) < 0)
   {
-    err += stringf("lsarpc_parse_LookupNamesRes failed : status = %x, error = %s",
-                   status, err2.c_str());
+    error = FUNC + stringf("lsarpc_parse_LookupNamesRes failed : status = %x, error = %s",
+                   status, error2.c_str());
     goto error;
   }
 
@@ -2450,7 +2452,7 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
   dcerpc_create_Operation_Request(dceOpReq, DCE_OP_CLOSE_POLICY, bytes_used);
 
   if (offset > max_xmit_frag) {
-    smb2->smb2_set_error("smb2_lookUpSid: IOCTL Payload size is larger than max_xmit_frag");
+    error = FUNC + string("IOCTL:DCE_OP_CLOSE_POLICY Payload size is larger than max_xmit_frag");
     goto error;
   }
 
@@ -2458,28 +2460,29 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
                       FSCTL_PIPE_TRANSCEIVE,
                       SMB2_0_IOCTL_IS_FSCTL,
                       dceRpcBuf, offset,
-                      output_buf, &output_count err2);
+                      output_buf, &output_count error2);
   if (status != SMB2_STATUS_SUCCESS) {
-    smb2->smb2_set_error("smb2_lookUpSid: smb2_ioctl failed for close policy: %s", smb2->smb2_get_error());
+    error = FUNC + stringf("IOCTL Failed for close policy: %s", error2.c_str());
     goto error;
   }
   if (dcerpc_parse_Operation_Response(output_buf,
                                       output_count,
                                       &dceOpRes2,
-                                      &status, err) < 0) {
-    smb2->smb2_set_error("smb2_lookUpSid:dcerpc_parse_Operation_Response failed : %x", status);
+                                      &status, error2) < 0) {
+    error = FUNC + stringf("dcerpc_parse_Operation_Response failed. status : %x, error - %s",
+                           status, error2.c_str());
     goto error;
   }
 #endif
 
   /* close the pipe & disconnect */
-  smb2_close(fh, err2);
+  smb2_close(fh, error2);
   smb2_disconnect_share();
   return 0;
 
 error:
   /* close the pipe & disconnect */
-  smb2_close(fh, err2);
+  smb2_close(fh, error2);
   smb2_disconnect_share();
 
   if (*sid != NULL) {

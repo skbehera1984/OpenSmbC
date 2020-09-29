@@ -13,6 +13,8 @@
 #include "Smb2FileData.h"
 #include "Stringf.h"
 
+#define FUNC stringf("%s: ", __func__)
+
 typedef struct _SID {
         uint8_t Revision;
         uint8_t SubAuthorityCount;
@@ -119,7 +121,7 @@ smb2_get_security_descriptor_size(smb2_security_descriptor *sd)
 }
 
 static smb2_sid *
-decode_sid(smb2_iovec v, string& err)
+decode_sid(smb2_iovec v, string& error)
 {
   uint8_t revision = 0, sub_auth_count = 0;
   int i;
@@ -127,28 +129,28 @@ decode_sid(smb2_iovec v, string& err)
 
   if (v.len < 8)
   {
-    err = "SID must be at least 8 bytes";
+    error = FUNC + "SID must be at least 8 bytes";
     return nullptr;
   }
 
   v.smb2_get_uint8(0, &revision);
   if (revision != 1)
   {
-    err = stringf("can not decode sid with revision %d", revision);
+    error = FUNC + stringf("can not decode sid with revision %d", revision);
     return nullptr;
   }
   v.smb2_get_uint8(1, &sub_auth_count);
 
   if (v.len < 8 + sub_auth_count * sizeof(uint32_t))
   {
-    err = "SID is bigger than the buffer";
+    error = FUNC + "SID is bigger than the buffer";
     return nullptr;
   }
 
   sid = new smb2_sid(sub_auth_count);
   if (!sid)
   {
-    err = "Failed to allocate sid";
+    error = FUNC + "Failed to allocate sid";
     return nullptr;
   }
 
@@ -167,16 +169,15 @@ decode_sid(smb2_iovec v, string& err)
 }
 
 static smb2_ace *
-decode_ace(smb2_iovec v, string& err)
+decode_ace(smb2_iovec v, string& error)
 {
-  string err2;
   uint8_t ace_type = 0, ace_flags = 0;
   uint16_t ace_size = 0;
   smb2_ace * ace = nullptr;
 
   if (v.len < 4)
   {
-    err = "not enough data for ace header";
+    error = FUNC + "not enough data for ace header";
     return nullptr;
   }
 
@@ -187,7 +188,7 @@ decode_ace(smb2_iovec v, string& err)
   ace = new smb2_ace();
   if (ace == nullptr)
   {
-    err = "Failed to allocate ace";
+    error = FUNC + "Failed to allocate ace";
     return nullptr;
   }
 
@@ -198,13 +199,13 @@ decode_ace(smb2_iovec v, string& err)
   /* Skip past the header */
   if (ace_size < 4)
   {
-    err = "not enough data for ace data";
+    error = FUNC + "not enough data for ace data";
     delete ace;
     return nullptr;
   }
   if (v.len < ace_size)
   {
-    err = "not enough data for ace data";
+    error = FUNC + "not enough data for ace data";
     delete ace;
     return nullptr;
   }
@@ -225,16 +226,16 @@ decode_ace(smb2_iovec v, string& err)
 
       if (v.len < 4)
       {
-        err = "not enough data for ace data.";
+        error = FUNC + "not enough data for ace data.";
         delete ace;
         return nullptr;
       }
       v.len -= 4;
       v.buf = &v.buf[4];
-      ace->sid = decode_sid(v, err2);
+      ace->sid = decode_sid(v, error);
       if (ace->sid == nullptr)
       {
-        err = "decode_ace: failed to decode sid 1 - " + err2;
+        error = FUNC + stringf("Failed to decode sid. ace_type %x - ", ace_type) + error;
         delete ace;
         return nullptr;
       }
@@ -246,7 +247,7 @@ decode_ace(smb2_iovec v, string& err)
     {
       if (v.len < 40)
       {
-        err = "not enough data for ace data.";
+        error = FUNC + "not enough data for ace data.";
         delete ace;
         return nullptr;
       }
@@ -266,10 +267,10 @@ decode_ace(smb2_iovec v, string& err)
 
       v.len -= SMB2_OBJECT_TYPE_SIZE;
       v.buf = &v.buf[SMB2_OBJECT_TYPE_SIZE];
-      ace->sid = decode_sid(v, err2);
+      ace->sid = decode_sid(v, error);
       if (ace->sid == nullptr)
       {
-        err = "decode_ace: failed to decode sid 2 - " + err2;
+        error = FUNC + stringf("Failed to decode sid. ace_type %x - ", ace_type) + error;
         delete ace;
         return nullptr;
       }
@@ -283,16 +284,16 @@ decode_ace(smb2_iovec v, string& err)
 
       if (v.len < 4)
       {
-        err = "not enough data for ace data.";
+        error = FUNC + "not enough data for ace data.";
         delete ace;
         return nullptr;
       }
       v.len -= 4;
       v.buf = &v.buf[4];
-      ace->sid = decode_sid(v, err2);
+      ace->sid = decode_sid(v, error);
       if (ace->sid == nullptr)
       {
-        err = "decode_ace: failed to decode sid 3 - " + err2;
+        error = FUNC + stringf("Failed to decode sid. ace_type %x - ", ace_type) + error;
         delete ace;
         return nullptr;
       }
@@ -301,7 +302,7 @@ decode_ace(smb2_iovec v, string& err)
       ace->ad_data = (char*)malloc(ace->ad_len);
       if (ace->ad_data == NULL)
       {
-        err = "decode_ace: failed to allocate ad_data";
+        error = FUNC + "Failed to allocate ad_data";
         return nullptr;
       }
       memcpy(ace->ad_data, v.buf, v.len);
@@ -312,7 +313,7 @@ decode_ace(smb2_iovec v, string& err)
       ace->raw_data = (char*)malloc(ace->raw_len);
       if (ace->raw_data == NULL)
       {
-        err = "decode_ace: failed to allocate raw_data";
+        error = FUNC + "Failed to allocate raw_data";
         delete ace;
         return nullptr;
       }
@@ -323,7 +324,7 @@ decode_ace(smb2_iovec v, string& err)
 }
 
 static smb2_acl *
-decode_acl(smb2_iovec v, string& err)
+decode_acl(smb2_iovec v, string& error)
 {
   uint8_t revision = 0;
   uint16_t acl_size = 0, ace_count = 0;
@@ -332,7 +333,7 @@ decode_acl(smb2_iovec v, string& err)
 
   if (v.len < 8)
   {
-    err = "not enough data for acl header";
+    error = FUNC + "not enough data for acl header";
     return nullptr;
   }
 
@@ -346,7 +347,7 @@ decode_acl(smb2_iovec v, string& err)
     case SMB2_ACL_REVISION_DS:
       break;
     default:
-      err = stringf("can not decode acl with revision %d", revision);
+      error = FUNC + stringf("can not decode acl with revision %d", revision);
       return nullptr;
   }
   v.smb2_get_uint16(2, &acl_size);
@@ -356,14 +357,14 @@ decode_acl(smb2_iovec v, string& err)
   }
   if (v.len < acl_size)
   {
-    err = "not enough data for acl";
+    error = FUNC + "not enough data for acl";
     return nullptr;
   }
 
   acl = new smb2_acl();
   if (!acl)
   {
-    err = "Failed to allocate acl";
+    error = FUNC + "Failed to allocate acl";
     return nullptr;
   }
 
@@ -377,18 +378,17 @@ decode_acl(smb2_iovec v, string& err)
 
   for (i = 0; i < ace_count; i++)
   {
-    string err2;
     smb2_ace *ace = nullptr;
-    ace = decode_ace(v, err2);
+    ace = decode_ace(v, error);
     if (!ace)
     {
-      err = stringf("Failed to decode ace # %d: %s", i, err2.c_str());
+      error = FUNC + stringf("Failed to decode ace # %d: %s", i, error.c_str());
       return nullptr;
     }
     /* skip to the next ace */
     if (ace->ace_size > v.len)
     {
-      err = "not enough data for ace";
+      error = FUNC + "not enough data for ace";
       delete ace;
       return nullptr;
     }
@@ -404,14 +404,14 @@ decode_acl(smb2_iovec v, string& err)
 int
 smb2DecodeSecDescInternal(smb2_security_descriptor *sd,
                           smb2_iovec               *vec,
-                          string&                  err)
+                          string&                  error)
 {
-  string err2;
   smb2_iovec v;
   uint32_t offset_owner = 0, offset_group = 0, offset_sacl = 0, offset_dacl = 0;
 
   if (vec->len < 20)
   {
+    error = FUNC + stringf("Invalid buffer length for security descriptor %ld", vec->len);
     return -1;
   }
 
@@ -421,7 +421,7 @@ smb2DecodeSecDescInternal(smb2_security_descriptor *sd,
   v.smb2_get_uint8(0, &sd->revision);
   if (sd->revision != 1)
   {
-    err = stringf("can't decode security descriptor with revision %d", sd->revision);
+    error = FUNC + stringf("can't decode security descriptor with revision %d", sd->revision);
     return -1;
   }
   v.smb2_get_uint16(2, &sd->control);
@@ -437,10 +437,10 @@ smb2DecodeSecDescInternal(smb2_security_descriptor *sd,
     v.buf = &vec->buf[offset_owner];
     v.len = vec->len - offset_owner;
 
-    sd->owner = decode_sid(v, err2);
+    sd->owner = decode_sid(v, error);
     if (sd->owner == nullptr)
     {
-      err = "Failed to decode owner sid: " + err2;
+      error = FUNC + "Failed to decode owner sid: " + error;
       return -1;
     }
   }
@@ -451,10 +451,10 @@ smb2DecodeSecDescInternal(smb2_security_descriptor *sd,
     v.buf = &vec->buf[offset_group];
     v.len = vec->len - offset_group;
 
-    sd->group = decode_sid(v, err2);
+    sd->group = decode_sid(v, error);
     if (sd->group == nullptr)
     {
-      err = "Failed to decode group sid: " + err2;
+      error = FUNC + "Failed to decode group sid: " + error;
       return -1;
     }
   }
@@ -465,10 +465,10 @@ smb2DecodeSecDescInternal(smb2_security_descriptor *sd,
     v.buf = &vec->buf[offset_dacl];
     v.len = vec->len - offset_dacl;
 
-    sd->dacl = decode_acl(v, err2);
+    sd->dacl = decode_acl(v, error);
     if (sd->dacl == nullptr)
     {
-      err = "Failed to decode dacl: " + err2;
+      error = FUNC + "Failed to decode dacl: " + error;
       return -1;
     }
   }
@@ -512,7 +512,7 @@ encode_sid(const smb2_sid *sid,
            uint8_t        *buffer,
            uint32_t        buffer_len,
            uint32_t       *size_used,
-           string         &err)
+           string         &error)
 {
   PSID le_sid = NULL;
   uint32_t size_required = 0;
@@ -526,7 +526,7 @@ encode_sid(const smb2_sid *sid,
 
   if (buffer_len < size_required)
   {
-    err = "not enough memory to encode SID";
+    error = FUNC + "not enough memory to encode SID";
     return -1;
   }
 
@@ -553,14 +553,14 @@ encode_ace(const smb2_ace *ace,
            uint8_t        *buffer,
            uint32_t        buffer_len,
            uint32_t       *size_used,
-           string         &err)
+           string         &error)
 {
   uint32_t offset = 0;
   PACE_HEADER le_ace_hdr = NULL;
 
   if (buffer_len < ace->ace_size)
   {
-    err = "Not enough buffer to encode ACE";
+    error = FUNC + "Not enough buffer to encode ACE";
     return -1;
   }
 
@@ -583,14 +583,13 @@ encode_ace(const smb2_ace *ace,
       le_access_hdr->Mask = htole32(ace->mask);
       offset += sizeof(ACCESS_ALLOWED_ACE_HDR);
 
-      string err2;
       if (encode_sid(ace->sid,
                      le_access_hdr->Sid,
                      buffer_len - offset, /*buffer+offset is same*/
                      &sid_size,
-                     err2) < 0)
+                     error) < 0)
       {
-        err = "Failed to encode SID/ACE : " + err2;
+        error = FUNC + stringf("Failed to encode SID/ACE type %x: ", ace->ace_type) + error;
         return -1;
       }
       offset += sid_size;
@@ -618,13 +617,12 @@ encode_ace(const smb2_ace *ace,
 
       offset += sizeof(ACCESS_ALLOWED_OBJ_ACE_HDR);
 
-      string err2;
       if (encode_sid(ace->sid,
                      le_access_obj_hdr->Sid,
                      buffer_len - offset,
-                     &sid_size, err2) < 0)
+                     &sid_size, error) < 0)
       {
-        err = "Failed to encode SID/ACE 2 : " + err2;
+        error = FUNC + stringf("Failed to encode SID/ACE type %x : ", ace->ace_type) + error;
         return -1;
       }
       offset += sid_size;
@@ -643,13 +641,12 @@ encode_ace(const smb2_ace *ace,
 
       offset += sizeof(ACCESS_ALLOWED_CALLBACK_ACE_HDR);
 
-      string err2;
       if (encode_sid(ace->sid,
                      le_acess_callback_hdr->Sid,
                      buffer_len - offset,
-                     &sid_size, err2) < 0)
+                     &sid_size, error) < 0)
       {
-        err = "Failed to encode SID/ACE 3 : " + err2;
+        error = FUNC + stringf("Failed to encode SID/ACE type %x : ", ace->ace_type) + error;
         return -1;
       }
       offset += sid_size;
@@ -687,7 +684,7 @@ encode_acl(const smb2_acl *acl,
            uint8_t        *buffer,
            uint32_t        buffer_len,
            uint32_t       *size_used,
-           string         &err)
+           string         &error)
 {
   PACL_HDR le_acl_hdr = NULL;
   uint32_t acl_size = 0;
@@ -700,19 +697,19 @@ encode_acl(const smb2_acl *acl,
     acl_size += ace->ace_size;
     if (acl_size < ace->ace_size)
     {
-      err = "ACL overflow detected";
+      error = FUNC + "ACL overflow detected";
       return -1;
     }
     if (acl_size > acl->acl_size)
     {
-      err = "Invalid ACL";
+      error = FUNC + "Invalid ACL";
       return -1;
     }
   }
 
   if (buffer_len < acl_size)
   {
-    err = "Not enough memory to encode ACL";
+    error = FUNC + "Not enough memory to encode ACL";
     return -1;
   }
 
@@ -728,11 +725,10 @@ encode_acl(const smb2_acl *acl,
 
   for (smb2_ace *ace : acl->aces)
   {
-    string err2;
     uint32_t ace_size_used = 0;
-    if (encode_ace(ace, buffer+offset, buffer_len - offset, &ace_size_used, err2) < 0)
+    if (encode_ace(ace, buffer+offset, buffer_len - offset, &ace_size_used, error) < 0)
     {
-      err = "Failed to encode ACE : " + err2;
+      error = FUNC + "Failed to encode ACE : " + error;
       return -1;
     }
 
@@ -750,23 +746,22 @@ int
 smb2EncodeSecurityDescriptor(smb2_security_descriptor *sd,
                              uint8_t                  *buffer,
                              uint32_t                 *buffer_len,
-                             string                   &err)
+                             string                   &error)
 {
-  string err2;
   uint32_t size = 0;
   uint32_t offset = 0;
   PSECURITY_DESCRIPTOR_RELATIVE_HDR le_sec_desc = NULL;
 
   if (buffer == NULL || buffer_len == NULL)
   {
-    err = "Buffer not allocated for security descriptor";
+    error = FUNC + "Buffer not allocated for security descriptor";
     return -1;
   }
 
   size = *buffer_len;
   if (size < smb2_get_security_descriptor_size(sd))
   {
-    err = "Buffer too small to encode security descriptor";
+    error = FUNC + "Buffer too small to encode security descriptor";
     return -9; /* it represents buffer is insufficient */
   }
 
@@ -786,9 +781,9 @@ smb2EncodeSecurityDescriptor(smb2_security_descriptor *sd,
   if (sd->owner)
   {
     uint32_t size_used = 0;
-    if (encode_sid(sd->owner, buffer+offset, size - offset, &size_used, err2) < 0)
+    if (encode_sid(sd->owner, buffer+offset, size - offset, &size_used, error) < 0)
     {
-      err = "Failed to encode owner SID : " + err2;
+      error = FUNC + "Failed to encode owner SID : " + error;
       return -1;
     }
     le_sec_desc->OffsetOwner = htole32(offset);
@@ -797,9 +792,9 @@ smb2EncodeSecurityDescriptor(smb2_security_descriptor *sd,
   if (sd->group)
   {
     uint32_t size_used = 0;
-    if (encode_sid(sd->group, buffer+offset, size - offset, &size_used, err2) < 0)
+    if (encode_sid(sd->group, buffer+offset, size - offset, &size_used, error) < 0)
     {
-      err = "Failed to encode group SID : " + err2;
+      error = FUNC + "Failed to encode group SID : " + error;
       return -1;
     }
     le_sec_desc->OffsetGroup = htole32(offset);
@@ -808,9 +803,9 @@ smb2EncodeSecurityDescriptor(smb2_security_descriptor *sd,
   if (sd->dacl)
   {
     uint32_t size_used = 0;
-    if (encode_acl(sd->dacl, buffer+offset, size - offset, &size_used, err2) < 0)
+    if (encode_acl(sd->dacl, buffer+offset, size - offset, &size_used, error) < 0)
     {
-      err = "Failed to encode DACL : " + err2;
+      error = FUNC + "Failed to encode DACL : " + error;
       return -1;
     }
     le_sec_desc->OffsetDacl = htole32(offset);

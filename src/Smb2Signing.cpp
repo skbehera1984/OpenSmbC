@@ -29,6 +29,8 @@
 
 using namespace std;
 
+#define FUNC stringf("%s: ", __func__)
+
 static
 int aes_cmac_shift_left(uint8_t data[AES128_KEY_LEN])
 {
@@ -130,22 +132,20 @@ void smb3_aes_cmac_128(uint8_t key[AES128_KEY_LEN],
 }
 
 bool
-smb2_pdu_add_signature(Smb2ContextPtr smb2, Smb2Pdu *pdu, std::string& err)
+smb2_pdu_add_signature(Smb2ContextPtr smb2, Smb2Pdu *pdu, std::string& error)
 {
         struct smb2_header *hdr = NULL;
         uint8_t signature[16];
-
-        err += stringf("%s:", __func__);
 
         if (pdu->header.command == SMB2_SESSION_SETUP) {
                 return true;
         }
         if (pdu->out.iovs.size() < 2) {
-                err += string("smb2_pdu_add_signature:Too few vectors to sign");
+                error = FUNC + "Too few vectors to sign";
                 return false;
         }
         if (pdu->out.iovs[0].len != SMB2_HEADER_SIZE) {
-                err += string("smb2_pdu_add_signature:First vector is not same size as smb2 header");
+                error = FUNC + "First vector is not same size as smb2 header";
                 return false;
         }
         if (smb2->session_id == 0) {
@@ -173,7 +173,7 @@ smb2_pdu_add_signature(Smb2ContextPtr smb2, Smb2Pdu *pdu, std::string& err)
                 uint8_t *msg = NULL;
                 msg = (uint8_t *) malloc(4);
                 if (msg == NULL) {
-                        err += string("smb2_pdu_add_signature:Failed to allocate buffer");
+                        error = FUNC + "Failed to allocate buffer";
                         return false;
                 }
 
@@ -181,7 +181,7 @@ smb2_pdu_add_signature(Smb2ContextPtr smb2, Smb2Pdu *pdu, std::string& err)
                 {
                   msg = (uint8_t *)realloc(msg, offset + v.len);
                   if (msg == NULL) {
-                    err += string("smb2_pdu_add_signature:Failed to allocate buffer 2");
+                    error = FUNC + "Failed to re-allocate buffer";
                     return false;
                   }
                   memcpy(msg+offset, v.buf, v.len);

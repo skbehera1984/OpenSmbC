@@ -12,6 +12,8 @@
 #include "Smb2AuthProvider.h"
 #include "Smb2Signing.h"
 
+#define FUNC stringf("%s: ", __func__)
+
 Smb2Context::Smb2Context()
 {
   smb2Socket = nullptr;
@@ -297,11 +299,9 @@ uint32_t Smb2Context::smb2GetMaxTransactSize()
   return max_transact_size;
 }
 
-bool Smb2Context::smb2_queue_pdu(Smb2Pdu *pdu, std::string& err)
+bool Smb2Context::smb2_queue_pdu(Smb2Pdu *pdu, std::string& error)
 {
   Smb2Pdu *p;
-
-  err += stringf("%s:", __func__);
 
   /* Update all the PDU headers in this chain */
   for (p = pdu; p; p = p->next_compound)
@@ -310,12 +310,12 @@ bool Smb2Context::smb2_queue_pdu(Smb2Pdu *pdu, std::string& err)
     if (this->signing_required)
     {
 #if defined(HAVE_OPENSSL_LIBS)
-      if (!smb2_pdu_add_signature(this, p, err))
+      if (!smb2_pdu_add_signature(this, p, error))
       {
-        err += std::string("Failed to add signature - ") + err;
+        return false;
       }
 #else
-      err += std::string("smb2_queue_pdu:signing required. OpenSSL support not available");
+      error = FUNC + "Signing Required. OpenSSL support not available";
       return false;
 #endif
     }
@@ -362,7 +362,7 @@ void Smb2Context::smb2_pdu_add_to_waitqueue(Smb2Pdu *pdu)
   }
 }
 
-int Smb2Context::wait_for_reply()
+int Smb2Context::wait_for_reply(string& error)
 {
   isComplete = false;
 
@@ -375,22 +375,21 @@ int Smb2Context::wait_for_reply()
 
     if (pfd.fd == -1)
     {
-      smb2_set_error("Socket Not Connected");
+      error = FUNC + "Socket Not Connected";
       return -1;
     }
 
     if (poll(&pfd, 1, 1000) < 0)
     {
-      smb2_set_error("Poll failed");
+      error = FUNC + "Poll failed";
       return -1;
     }
     if (pfd.revents == 0)
     {
       continue;
     }
-    if (smb2Socket->smb2_service(this, pfd.revents) < 0)
+    if (smb2Socket->smb2_service(this, pfd.revents, error) < 0)
     {
-      smb2_set_error("smb2_service failed with : %s\n", smb2_get_error());
       return -1;
     }
   }

@@ -26,6 +26,8 @@
 
 using namespace std;
 
+#define FUNC stringf("%s: ", __func__)
+
 static const smb2_file_id compound_file_id = {0xffffffffffffffff, 0xffffffffffffffff};
 
 static void
@@ -78,10 +80,9 @@ Smb2Context::Smb2BuildConnectRequest(std::string& server,
                                      std::string& user,
                                      AppData      *connData)
 {
-  std::string err = stringf("%s:", __func__);
-
   struct smb2_negotiate_request req;
   Smb2Pdu *pdu = NULL;
+  string error;
 
   memset(&req, 0, sizeof(struct smb2_negotiate_request));
 
@@ -162,14 +163,14 @@ Smb2Context::Smb2BuildConnectRequest(std::string& server,
   pdu = Smb2Negotiate::createPdu(this, &req, connData);
   if (pdu == NULL)
   {
-    err += string("Failed to create Smb2Negotiate");
-    connData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2Negotiate PDU";
+    connData->setErrorMsg(error);
     return -1;
   }
 
-  if (!smb2_queue_pdu(pdu, err))
+  if (!smb2_queue_pdu(pdu, error))
   {
-    connData->setErrorMsg(err);
+    connData->setErrorMsg(error);
     return -1;
   }
 
@@ -181,17 +182,17 @@ Smb2Context::Smb2BuildQueryDirectoryRequest(smb2fh  *fh,
                                             string&  pattern,
                                             AppData *qDirData)
 {
-  string err = stringf("%s:", __func__);
   struct smb2_query_directory_request req;
   smb2dir *dir = nullptr;
   Smb2Pdu *pdu;
+  string error;
 
   dir = new smb2dir();
   if (dir == nullptr)
   {
-    err += string("Failed to allocate smb2dir");
+    error = FUNC + "Failed to allocate smb2dir";
     delete qDirData;
-    qDirData->setErrorMsg(err);
+    qDirData->setErrorMsg(error);
     return -1;
   }
 
@@ -210,17 +211,18 @@ Smb2Context::Smb2BuildQueryDirectoryRequest(smb2fh  *fh,
   req.name = pattern.c_str();
 
   pdu = Smb2QueryDir::createPdu(this, &req, qDirData);
-  if (pdu == NULL) {
-    err += string("Failed to create Smb2QueryDir command.");
-    qDirData->setErrorMsg(err);
+  if (pdu == NULL)
+  {
+    error = FUNC + "Failed to create Smb2QueryDir command";
+    qDirData->setErrorMsg(error);
     delete dir;
     delete qDirData;
     return -1;
   }
 
-  if (!this->smb2_queue_pdu(pdu, err))
+  if (!this->smb2_queue_pdu(pdu, error))
   {
-    qDirData->setErrorMsg(err);
+    qDirData->setErrorMsg(error);
     return -1;
   }
 
@@ -239,21 +241,22 @@ Smb2Context::Smb2BuildCreateRequest(std::string& path,
                                     uint32_t create_options,
                                     AppData  *createData)
 {
-  string err = stringf("%s:", __func__);
-
   struct smb2_create_request req;
   Smb2Pdu *pdu;
+  string error;
 
   smb2fh *fh = new smb2fh();
-  if (fh == nullptr) {
-    err += string("Failed to allocate smbfh");
-    createData->setErrorMsg(err);
+  if (fh == nullptr)
+  {
+    error = FUNC + "Failed to allocate smb2fh";
+    createData->setErrorMsg(error);
     return -ENOMEM;
   }
 
   createData->setFH(fh);
 
-  if (this->userInBackUpOperatorsGrp) {
+  if (this->userInBackUpOperatorsGrp)
+  {
     create_options |= SMB2_FILE_OPEN_FOR_BACKUP_INTENT;
   }
 
@@ -272,15 +275,15 @@ Smb2Context::Smb2BuildCreateRequest(std::string& path,
   pdu = Smb2Create::createPdu(this, &req, createData);
   if (pdu == NULL)
   {
-    err += string("Failed to create Smb2Create command");
-    createData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2Create PDU";
+    createData->setErrorMsg(error);
     delete createData;
     return -ENOMEM;
   }
 
-  if (!smb2_queue_pdu(pdu, err))
+  if (!smb2_queue_pdu(pdu, error))
   {
-    createData->setErrorMsg(err);
+    createData->setErrorMsg(error);
     return -1;
   }
 
@@ -290,9 +293,9 @@ Smb2Context::Smb2BuildCreateRequest(std::string& path,
 int
 Smb2Context::Smb2BuildCloseRequest(smb2fh *fh, AppData *closeData)
 {
-  string err = stringf("%s:", __func__);
   struct smb2_close_request req;
   Smb2Pdu *pdu;
+  string error;
 
   closeData->setFH(fh);
 
@@ -304,15 +307,15 @@ Smb2Context::Smb2BuildCloseRequest(smb2fh *fh, AppData *closeData)
   pdu = Smb2Close::createPdu(this, &req, closeData);
   if (pdu == NULL)
   {
-    err += string("Failed to create Smb2Close command");
-    closeData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2Close PDU";
+    closeData->setErrorMsg(error);
     delete closeData;
     return -ENOMEM;
   }
 
-  if (!smb2_queue_pdu(pdu, err))
+  if (!smb2_queue_pdu(pdu, error))
   {
-    closeData->setErrorMsg(err);
+    closeData->setErrorMsg(error);
     return -1;
   }
 
@@ -322,9 +325,9 @@ Smb2Context::Smb2BuildCloseRequest(smb2fh *fh, AppData *closeData)
 int
 Smb2Context::Smb2BuildFlushRequest(smb2fh *fh, AppData *flushData)
 {
-  string err = stringf("%s:", __func__);
   struct smb2_flush_request req;
   Smb2Pdu *pdu;
+  string error;
 
   memset(&req, 0, sizeof(struct smb2_flush_request));
   req.file_id.persistent_id = fh->file_id.persistent_id;
@@ -333,14 +336,14 @@ Smb2Context::Smb2BuildFlushRequest(smb2fh *fh, AppData *flushData)
   pdu = Smb2Flush::createPdu(this, &req, flushData);
   if (pdu == NULL)
   {
-    err += ("Failed to create Smb2Flush PDU");
-    flushData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2Flush PDU";
+    flushData->setErrorMsg(error);
     return -ENOMEM;
   }
 
-  if (!smb2_queue_pdu(pdu, err))
+  if (!smb2_queue_pdu(pdu, error))
   {
-    flushData->setErrorMsg(err);
+    flushData->setErrorMsg(error);
     delete pdu;
     return -1;
   }
@@ -355,9 +358,9 @@ Smb2Context::Smb2BuildReadRequest(smb2fh   *fh,
                                   uint64_t offset,
                                   AppData *readData)
 {
-  string err = stringf("%s:", __func__);
   struct smb2_read_request req;
   Smb2Pdu *pdu;
+  string error;
   uint32_t needed_credits = (count - 1) / 65536 + 1;
 
   if (count > this->max_read_size)
@@ -379,9 +382,7 @@ Smb2Context::Smb2BuildReadRequest(smb2fh   *fh,
   else
   {
     if (count > 65536)
-    {
       count = 65536;
-    }
   }
 
   fh->offset = offset;
@@ -402,14 +403,14 @@ Smb2Context::Smb2BuildReadRequest(smb2fh   *fh,
   pdu = Smb2Read::createPdu(this, &req, readData);
   if (pdu == NULL)
   {
-    err += string("Failed to create Smb2Read PDU");
-    readData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2Read PDU";
+    readData->setErrorMsg(error);
     return -1;
   }
 
-  if (!smb2_queue_pdu(pdu, err))
+  if (!smb2_queue_pdu(pdu, error))
   {
-    readData->setErrorMsg(err);
+    readData->setErrorMsg(error);
     return -1;
   }
 
@@ -423,9 +424,9 @@ Smb2Context::Smb2BuildWriteRequest(smb2fh    *fh,
                                    uint64_t  offset,
                                    AppData   *writeData)
 {
-  string err = stringf("%s:", __func__);
   struct smb2_write_request req;
   Smb2Pdu *pdu;
+  string error;
   uint32_t needed_credits = (count - 1) / 65536 + 1;
 
   if (count > this->max_write_size)
@@ -447,9 +448,7 @@ Smb2Context::Smb2BuildWriteRequest(smb2fh    *fh,
   else
   {
     if (count > 65536)
-    {
       count = 65536;
-    }
   }
 
   fh->offset = offset;
@@ -469,14 +468,14 @@ Smb2Context::Smb2BuildWriteRequest(smb2fh    *fh,
   pdu = Smb2Write::createPdu(this, &req, writeData);
   if (pdu == NULL)
   {
-    err += string("Failed to create Smb2Write PDU");
-    writeData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2Write PDU";
+    writeData->setErrorMsg(error);
     return -ENOMEM;
   }
 
-  if (!smb2_queue_pdu(pdu, err))
+  if (!smb2_queue_pdu(pdu, error))
   {
-    writeData->setErrorMsg(err);
+    writeData->setErrorMsg(error);
     return -1;
   }
 
@@ -488,21 +487,21 @@ Smb2Context::Smb2BuildQueryInfoRequest(smb2fh         *fh,
                                        smb2_file_info *info,
                                        AppData        *qiData)
 {
-  string err = stringf("%s:", __func__);
   struct smb2_query_info_request qi_req;
   Smb2Pdu *pdu;
+  string error;
 
   if (fh == NULL)
   {
-    err += string("FileHandle is not provided");
-    qiData->setErrorMsg(err);
+    error = FUNC + "FileHandle is not provided";
+    qiData->setErrorMsg(error);
     return -1;
   }
 
   if (info == NULL)
   {
-    err += string("No info type provided for query");
-    qiData->setErrorMsg(err);
+    error = FUNC + "No info type provided for query";
+    qiData->setErrorMsg(error);
     return -1;
   }
 
@@ -527,14 +526,14 @@ Smb2Context::Smb2BuildQueryInfoRequest(smb2fh         *fh,
   pdu = Smb2QueryInfo::createPdu(this, &qi_req, qiData);
   if (pdu == NULL)
   {
-    err += string("Failed to create Smb2QueryInfo PDU");
-    qiData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2QueryInfo PDU";
+    qiData->setErrorMsg(error);
     return -1;
   }
 
-  if (!smb2_queue_pdu(pdu, err))
+  if (!smb2_queue_pdu(pdu, error))
   {
-    qiData->setErrorMsg(err);
+    qiData->setErrorMsg(error);
     return -1;
   }
 
@@ -546,24 +545,24 @@ Smb2Context::Smb2BuildQueryInfoRequest(std::string    &path,
                                        smb2_file_info *info,
                                        AppData        *qiData)
 {
-  string err = stringf("%s:", __func__);
   struct smb2_create_request cr_req;
   struct smb2_query_info_request qi_req;
   struct smb2_close_request cl_req;
   Smb2Pdu *pdu, *next_pdu;
+  string error;
 
   if (info == NULL)
   {
-    err += string("No info type provided for query");
-    qiData->setErrorMsg(err);
+    error = FUNC + "No info type provided for query";
+    qiData->setErrorMsg(error);
     return -1;
   }
 
   AppData *createData = new CreateData();
   if (createData == nullptr)
   {
-    err += string("Failed to allocate CreateData");
-    qiData->setErrorMsg(err);
+    error = FUNC + "Failed to allocate CreateData";
+    qiData->setErrorMsg(error);
     return -1;
   }
   createData->setDelete(true);
@@ -589,8 +588,8 @@ Smb2Context::Smb2BuildQueryInfoRequest(std::string    &path,
   pdu = Smb2Create::createPdu(this, &cr_req, createData);
   if (pdu == NULL)
   {
-    err += string("Failed to create Smb2Create PDU");
-    qiData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2Create PDU";
+    qiData->setErrorMsg(error);
     delete createData;
     return -1;
   }
@@ -617,8 +616,8 @@ Smb2Context::Smb2BuildQueryInfoRequest(std::string    &path,
   next_pdu = Smb2QueryInfo::createPdu(this, &qi_req, qiData);
   if (next_pdu == NULL)
   {
-    err += string("Failed to create Smb2QueryInfo PDU");
-    qiData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2QueryInfo PDU";
+    qiData->setErrorMsg(error);
     delete pdu;
     return -1;
   }
@@ -627,8 +626,8 @@ Smb2Context::Smb2BuildQueryInfoRequest(std::string    &path,
   AppData *closeData = new CloseData();
   if (closeData == nullptr)
   {
-    err += string("Failed to allocate CloseData");
-    qiData->setErrorMsg(err);
+    error = FUNC + "Failed to allocate CloseData";
+    qiData->setErrorMsg(error);
     delete pdu;
     return -1;
   }
@@ -643,8 +642,8 @@ Smb2Context::Smb2BuildQueryInfoRequest(std::string    &path,
   next_pdu = Smb2Close::createPdu(this, &cl_req, closeData);
   if (next_pdu == NULL)
   {
-    err += string("Failed to create Smb2Close PDU");
-    qiData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2Close PDU";
+    qiData->setErrorMsg(error);
     delete closeData;
     delete pdu;
     return -1;
@@ -652,9 +651,9 @@ Smb2Context::Smb2BuildQueryInfoRequest(std::string    &path,
 
   pdu->smb2_add_compound_pdu(next_pdu);
 
-  if (!smb2_queue_pdu(pdu, err))
+  if (!smb2_queue_pdu(pdu, error))
   {
-    qiData->setErrorMsg(err);
+    qiData->setErrorMsg(error);
     delete pdu;
     return -1;
   }
@@ -665,14 +664,23 @@ Smb2Context::Smb2BuildQueryInfoRequest(std::string    &path,
 int
 Smb2Context::Smb2BuildDisConnectRequest(AppData *disConData)
 {
-  std::string err;
   Smb2Pdu *pdu;
+  std::string error;
 
   pdu = Smb2TreeDisconnect::createPdu(this, disConData);
-  if (pdu == NULL) {
+  if (pdu == NULL)
+  {
+    error = FUNC + "Failed to create Smb2TreeDisconnect PDU";
+    disConData->setErrorMsg(error);
     return -ENOMEM;
   }
-  smb2_queue_pdu(pdu, err);
+
+  if (!smb2_queue_pdu(pdu, error))
+  {
+    disConData->setErrorMsg(error);
+    delete pdu;
+    return -1;
+  }
 
   return 0;
 }
@@ -680,20 +688,20 @@ Smb2Context::Smb2BuildDisConnectRequest(AppData *disConData)
 int
 Smb2Context::Smb2BuildEchoRequest(AppData *echoData)
 {
-  string err = stringf("%s:", __func__);
   Smb2Pdu *pdu;
+  string error;
 
   pdu = Smb2Echo::createPdu(this, echoData);
   if (pdu == NULL)
   {
-    err += string("Failed to create Smb2Echo PDU");
-    echoData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2Echo PDU";
+    echoData->setErrorMsg(error);
     return -1;
   }
 
-  if (!smb2_queue_pdu(pdu, err))
+  if (!smb2_queue_pdu(pdu, error))
   {
-    echoData->setErrorMsg(err);
+    echoData->setErrorMsg(error);
     delete pdu;
     return -1;
   }
@@ -711,14 +719,15 @@ Smb2Context::Smb2BuildIoctlRequest(smb2fh   *fh,
                                    uint32_t *output_count,
                                    AppData  *ioctlData)
 {
-  string err = stringf("%s:", __func__);
   struct smb2_ioctl_request req;
   Smb2Pdu *pdu;
+  string error;
 
   if (input_count > this->max_transact_size)
   {
-    err += stringf("Ioctl count %d larger than max_transact_size %d", input_count, this->max_transact_size);
-    ioctlData->setErrorMsg(err);
+    error = FUNC + stringf("Ioctl count %d larger than max_transact_size %d",
+                           input_count, this->max_transact_size);
+    ioctlData->setErrorMsg(error);
     return -EIO;
   }
 
@@ -750,14 +759,14 @@ Smb2Context::Smb2BuildIoctlRequest(smb2fh   *fh,
   pdu = Smb2Ioctl::createPdu(this, &req, ioctlData);
   if (pdu == NULL)
   {
-    err += string("Failed to create Smb2Ioctl PDU");
-    ioctlData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2Ioctl PDU";
+    ioctlData->setErrorMsg(error);
     return -1;
   }
 
-  if (!smb2_queue_pdu(pdu, err))
+  if (!smb2_queue_pdu(pdu, error))
   {
-    ioctlData->setErrorMsg(err);
+    ioctlData->setErrorMsg(error);
     delete pdu;
     return -1;
   }
@@ -770,28 +779,28 @@ Smb2Context::Smb2BuildSetInforequest(smb2fh         *fh,
                                      smb2_file_info *info,
                                      AppData        *setinfoData)
 {
-  string err = stringf("%s:", __func__);
   struct smb2_set_info_request si_req;
   Smb2Pdu *pdu;
+  string error;
 
   if (fh == NULL)
   {
-    err += "no FileHandle provided";
-    setinfoData->setErrorMsg(err);
+    error = FUNC + "no FileHandle provided";
+    setinfoData->setErrorMsg(error);
     return -1;
   }
 
   if (info == NULL)
   {
-    err += "no info provided";
-    setinfoData->setErrorMsg(err);
+    error = FUNC + "no info provided";
+    setinfoData->setErrorMsg(error);
     return -1;
   }
 
   if (info->info_type != SMB2_0_INFO_FILE && info->info_type != SMB2_0_INFO_SECURITY)
   {
-    err += "Invalid INFOTYPE to set";
-    setinfoData->setErrorMsg(err);
+    error = FUNC + "Invalid INFOTYPE to set";
+    setinfoData->setErrorMsg(error);
     return -1;
   }
 
@@ -832,14 +841,14 @@ Smb2Context::Smb2BuildSetInforequest(smb2fh         *fh,
   pdu = Smb2SetInfo::createPdu(this, &si_req, setinfoData);
   if (pdu == NULL)
   {
-    err += "Failed to create Smb2SetInfo PDU";
-    setinfoData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2SetInfo PDU";
+    setinfoData->setErrorMsg(error);
     return -1;
   }
 
-  if (!smb2_queue_pdu(pdu, err))
+  if (!smb2_queue_pdu(pdu, error))
   {
-    setinfoData->setErrorMsg(err);
+    setinfoData->setErrorMsg(error);
     delete pdu;
     return -1;
   }
@@ -852,23 +861,23 @@ Smb2Context::Smb2BuildSetInforequest(string&        path,
                                      smb2_file_info *info,
                                      AppData        *setinfoData)
 {
-  string err = stringf("%s:", __func__);
   struct smb2_create_request cr_req;
   struct smb2_set_info_request si_req;
   struct smb2_close_request cl_req;
   Smb2Pdu *pdu, *next_pdu;
+  string error;
 
   if (info == NULL)
   {
-    err += string("No info provided to set");
-    setinfoData->setErrorMsg(err);
+    error = FUNC + "No info provided to set";
+    setinfoData->setErrorMsg(error);
     return -1;
   }
 
   if (info->info_type != SMB2_0_INFO_FILE && info->info_type != SMB2_0_INFO_SECURITY)
   {
-    err += string("Invalid INFOTYPE to set");
-    setinfoData->setErrorMsg(err);
+    error = FUNC + "Invalid INFOTYPE to set";
+    setinfoData->setErrorMsg(error);
     return -1;
   }
 
@@ -878,8 +887,8 @@ Smb2Context::Smb2BuildSetInforequest(string&        path,
   AppData *createData = new CreateData();
   if (createData == nullptr)
   {
-    err += string("Failed to allocate CreateData");
-    setinfoData->setErrorMsg(err);
+    error = FUNC + "Failed to allocate CreateData";
+    setinfoData->setErrorMsg(error);
     return -1;
   }
   createData->setDelete(true);
@@ -927,8 +936,8 @@ Smb2Context::Smb2BuildSetInforequest(string&        path,
   pdu = Smb2Create::createPdu(this, &cr_req, createData);
   if (pdu == NULL)
   {
-    err += string("Failed to create Smb2Create PDU");
-    setinfoData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2Create PDU";
+    setinfoData->setErrorMsg(error);
     delete createData;
     return -1;
   }
@@ -968,8 +977,8 @@ Smb2Context::Smb2BuildSetInforequest(string&        path,
   next_pdu = Smb2SetInfo::createPdu(this, &si_req, setinfoData);
   if (next_pdu == NULL)
   {
-    err += string("Failed to create Smb2SetInfo PDU");
-    setinfoData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2SetInfo PDU";
+    setinfoData->setErrorMsg(error);
     delete pdu;
     return -1;
   }
@@ -979,8 +988,8 @@ Smb2Context::Smb2BuildSetInforequest(string&        path,
   AppData *closeData = new CloseData();
   if (closeData == nullptr)
   {
-    err += string("Failed to allocate CloseData");
-    setinfoData->setErrorMsg(err);
+    error = FUNC + "Failed to allocate CloseData";
+    setinfoData->setErrorMsg(error);
     delete pdu;
     return -1;
   }
@@ -995,8 +1004,8 @@ Smb2Context::Smb2BuildSetInforequest(string&        path,
   next_pdu = Smb2Close::createPdu(this, &cl_req, closeData);
   if (next_pdu == NULL)
   {
-    err += string("Failed to create Smb2Close PDU"); // TODO sarat - add the err from createPdu
-    setinfoData->setErrorMsg(err);
+    error = FUNC + "Failed to create Smb2Close PDU"; // TODO sarat - add the err from createPdu
+    setinfoData->setErrorMsg(error);
     delete closeData;
     delete pdu;
     return -1;
@@ -1004,9 +1013,9 @@ Smb2Context::Smb2BuildSetInforequest(string&        path,
 
   pdu->smb2_add_compound_pdu(next_pdu);
 
-  if (!smb2_queue_pdu(pdu, err))
+  if (!smb2_queue_pdu(pdu, error))
   {
-    setinfoData->setErrorMsg(err);
+    setinfoData->setErrorMsg(error);
     delete pdu;
     return -1;
   }

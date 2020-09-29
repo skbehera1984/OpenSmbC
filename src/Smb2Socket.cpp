@@ -22,6 +22,8 @@ using namespace std;
 
 #define CIFS_PORT 445
 
+#define FUNC stringf("%s: ", __func__)
+
 Smb2Socket::Smb2Socket()
 {
   fd = -1;
@@ -94,11 +96,11 @@ int Smb2Socket::smb2_which_events(Smb2ContextPtr smb2)
 }
 
 // this function will write one iovec completely
-int Smb2Socket::writeIovec(Smb2ContextPtr smb2, smb2_iovec &v)
+int Smb2Socket::writeIovec(Smb2ContextPtr smb2, smb2_iovec &v, string& error)
 {
   if (fd == -1)
   {
-    smb2->smb2_set_error("trying to write but not connected");
+    error = FUNC + "trying to write but not connected";
     return -1;
   }
 
@@ -119,7 +121,7 @@ int Smb2Socket::writeIovec(Smb2ContextPtr smb2, smb2_iovec &v)
         usleep(100000);
         continue;
       }
-      smb2->smb2_set_error("Error when writing to socket :%d %s", errno, smb2->smb2_get_error());
+      error = FUNC + stringf("Error when writing to socket. errno:%d", errno);
       return -1;
     }
     totalBytesWritten += bytesWritten;
@@ -127,7 +129,7 @@ int Smb2Socket::writeIovec(Smb2ContextPtr smb2, smb2_iovec &v)
   return totalBytesWritten;
 }
 
-int Smb2Socket::sendPdu(Smb2ContextPtr smb2, Smb2Pdu *pdu)
+int Smb2Socket::sendPdu(Smb2ContextPtr smb2, Smb2Pdu *pdu, string& error)
 {
   size_t bytesWritten = 0, totalBytesWritten = 0;
 
@@ -138,7 +140,7 @@ int Smb2Socket::sendPdu(Smb2ContextPtr smb2, Smb2Pdu *pdu)
   {
     if (creditCharge > smb2->credits)
     {
-      smb2->smb2_set_error("Insufficient credits to send request");
+      error = FUNC + "Insufficient credits to send request";
       return -1;
     }
   }
@@ -147,16 +149,17 @@ int Smb2Socket::sendPdu(Smb2ContextPtr smb2, Smb2Pdu *pdu)
   uint32_t spl = htobe32(netbiosLen);
   smb2_iovec NBvec= smb2_iovec((uint8_t *)&spl, SMB2_SPL_SIZE, NULL);
 
-  bytesWritten = writeIovec(smb2, NBvec);
+  bytesWritten = writeIovec(smb2, NBvec, error);
   if (bytesWritten < 0)
     return bytesWritten;
+
   totalBytesWritten += bytesWritten;
 
   // write all the io vecs
   smb2_io_vectors compoundIoVecs = pdu->getAllComOutVecs();
   for (smb2_iovec &v : compoundIoVecs.iovs)
   {
-    bytesWritten = writeIovec(smb2, v);
+    bytesWritten = writeIovec(smb2, v, error);
     if (bytesWritten <= 0)
       return bytesWritten;
 
@@ -165,14 +168,14 @@ int Smb2Socket::sendPdu(Smb2ContextPtr smb2, Smb2Pdu *pdu)
 
   if (totalBytesWritten != (SMB2_SPL_SIZE + netbiosLen))
   {
-    smb2->smb2_set_error("Couldn't send the entire pdu");
+    error = FUNC + "Couldn't send the entire pdu";
     return -1;
   }
 
   return 0;
 }
 
-int Smb2Socket::sendPdus(Smb2ContextPtr smb2)
+int Smb2Socket::sendPdus(Smb2ContextPtr smb2, string& error)
 {
   std::map<uint64_t, Smb2Pdu*>::iterator it = smb2->outqueue.begin();
 
@@ -184,11 +187,10 @@ int Smb2Socket::sendPdus(Smb2ContextPtr smb2)
     it = smb2->outqueue.erase(it);
 
     // send the pdu
-    if (sendPdu(smb2, pdu) < 0)
+    if (sendPdu(smb2, pdu, error) < 0)
     {
       // add back the pdu on failure
       smb2->outqueue[pdu->header.message_id] = pdu;
-      smb2->smb2_set_error("Failed to send PDU - %s", smb2->smb2_get_error());
       return -1;
     }
     smb2->smb2_pdu_add_to_waitqueue(pdu);
@@ -196,7 +198,7 @@ int Smb2Socket::sendPdus(Smb2ContextPtr smb2)
   return 0;
 }
 
-int Smb2Socket::readIovec(Smb2ContextPtr smb2, struct smb2_iovec &v)
+int Smb2Socket::readIovec(Smb2ContextPtr smb2, struct smb2_iovec &v, string& error)
 {
   struct iovec iov;
   size_t bytesRead = 0, totalBytesRead = 0;
@@ -215,12 +217,12 @@ int Smb2Socket::readIovec(Smb2ContextPtr smb2, struct smb2_iovec &v)
         usleep(100000);
         continue;
       }
-      smb2->smb2_set_error("Read from socket failed, errno:%d. Closing socket.", err);
+      error = FUNC + stringf("Read from socket failed, errno:%d. Closing socket", err);
       return -1;
     }
     if (bytesRead == 0)
     {
-      smb2->smb2_set_error("Remote side has closed the socket");
+      error = FUNC + "Remote side has closed the socket";
       return -1;
     }
     totalBytesRead += bytesRead;
@@ -229,9 +231,8 @@ int Smb2Socket::readIovec(Smb2ContextPtr smb2, struct smb2_iovec &v)
 }
 
 // this function will read one compound response and return
-int Smb2Socket::receivePdus(Smb2ContextPtr smb2)
+int Smb2Socket::receivePdus(Smb2ContextPtr smb2, string& error)
 {
-  std::string err;
   enum smb2_recv_state recv_state = SMB2_RECV_SPL;
   static uint32_t spl = 0;
   struct smb2_header hdr;
@@ -248,7 +249,7 @@ int Smb2Socket::receivePdus(Smb2ContextPtr smb2)
 read_more_data:
 
   ssize_t bytesRead = 0;
-  bytesRead = readIovec(smb2, readVec);
+  bytesRead = readIovec(smb2, readVec, error);
   if (bytesRead < 0)
     return bytesRead;
 
@@ -269,27 +270,27 @@ read_more_data:
       /* Record the offset for the start of payload data. */
       payload_offset = totalBytesRead;
 
-      if (Smb2Pdu::decodeHeader(&readVec, &hdr, err) != 0)
+      if (Smb2Pdu::decodeHeader(&readVec, &hdr, error) != 0)
       {
-        smb2->smb2_set_error("Failed to decode smb2 header");
+        error = FUNC + error;
         return -1;
       }
 
       if (memcmp(&hdr.protocol_id, magic, 4))
       {
-        smb2->smb2_set_error("received non-SMB2 blob");
+        error = FUNC + "Received non-SMB2 blob";
         return -1;
       }
       if (!(hdr.flags & SMB2_FLAGS_SERVER_TO_REDIR))
       {
-        smb2->smb2_set_error("received non-reply");
+        error = FUNC + "Received non-reply";
         return -1;
       }
 
       pdu = smb2->smb2_find_pdu(hdr.message_id);
       if (pdu == NULL)
       {
-        smb2->smb2_set_error("no matching PDU found");
+        error = FUNC + "No matching PDU found";
         return -1;
       }
 
@@ -318,7 +319,7 @@ read_more_data:
       ssize_t fixedSize = pdu->smb2ReplyGetFixedSize();
       if (fixedSize < 0)
       {
-        smb2->smb2_set_error("can not determine fixed size");
+        error = FUNC + "can not determine parameter size";
         return -1;
       }
 
@@ -334,7 +335,7 @@ read_more_data:
       ssize_t varSize = pdu->smb2ReplyProcessFixed(smb2);
       if (varSize < 0)
       {
-        smb2->smb2_set_error("Failed to parse fixed part of command payload. %s", smb2->smb2_get_error());
+        error = FUNC + stringf("Failed to parse fixed part of command payload. %s", smb2->smb2_get_error());
         return -1;
       }
 
@@ -354,7 +355,7 @@ read_more_data:
 
       if (padBytes < 0)
       {
-        smb2->smb2_set_error("Negative number of PAD bytes encountered during PDU decode of fixed payload");
+        error = FUNC + "Negative number of PAD bytes received during PDU decode for fixed part";
         return -1;
       }
       if (padBytes > 0)
@@ -374,7 +375,7 @@ read_more_data:
 
       if (pdu->smb2ReplyProcessVariable(smb2) < 0)
       {
-        smb2->smb2_set_error("Failed to parse variable part of command payload. %s", smb2->smb2_get_error());
+        error = FUNC + stringf("Failed to parse variable part. %s", smb2->smb2_get_error());
         return -1;
       }
 
@@ -387,7 +388,7 @@ read_more_data:
 
       if (padBytes < 0)
       {
-        smb2->smb2_set_error("Negative number of PAD bytes encountered during PDU decode of variable payload");
+        error = FUNC + "Negative number of PAD bytes received during PDU decode for variable part";
         return -1;
       }
       if (padBytes > 0)
@@ -442,7 +443,7 @@ read_more_data:
   return 0;
 }
 
-int Smb2Socket::smb2_service(Smb2ContextPtr smb2, int revents)
+int Smb2Socket::smb2_service(Smb2ContextPtr smb2, int revents, string& error)
 {
   if (fd < 0)
     return 0;
@@ -458,17 +459,17 @@ int Smb2Socket::smb2_service(Smb2ContextPtr smb2, int revents)
       {
         err = errno;
       }
-      smb2->smb2_set_error("smb2_service: socket error %s(%d).", strerror(err), err);
+      error = FUNC + stringf("socket error %s(%d)", strerror(err), err);
     }
     else
     {
-      smb2->smb2_set_error("smb2_service: POLLERR, Unknown socket error.");
+      error = FUNC + "POLLERR, Unknown socket error";
     }
     return -1;
   }
   if (revents & POLLHUP)
   {
-    smb2->smb2_set_error("smb2_service: POLLHUP, socket error.");
+    error = FUNC + "POLLHUP, socket error";
     return -1;
   }
 
@@ -483,7 +484,7 @@ int Smb2Socket::smb2_service(Smb2ContextPtr smb2, int revents)
       {
         err = errno;
       }
-      smb2->smb2_set_error("smb2_service: socket error %s(%d) while connecting.", strerror(err), err);
+      error = FUNC + stringf("socket error %s(%d) while connecting", strerror(err), err);
       return -1;
     }
 
@@ -493,24 +494,20 @@ int Smb2Socket::smb2_service(Smb2ContextPtr smb2, int revents)
 
   if (revents & POLLIN)
   {
-    if (receivePdus(smb2) != 0)
-    {
+    if (receivePdus(smb2, error) != 0)
       return -1;
-    }
   }
 
   if (revents & POLLOUT && !smb2->outqueue.empty())
   {
-    if (sendPdus(smb2) != 0)
-    {
+    if (sendPdus(smb2, error) != 0)
       return -1;
-    }
   }
 
   return 0;
 }
 
-int Smb2Socket::connect(Smb2ContextPtr smb2, std::string& server, std::string& err)
+int Smb2Socket::connect(Smb2ContextPtr smb2, std::string& server, std::string& error)
 {
   struct addrinfo *ai = NULL;
   struct sockaddr_storage ss;
@@ -518,11 +515,9 @@ int Smb2Socket::connect(Smb2ContextPtr smb2, std::string& server, std::string& e
   int family;
   string host = server;
 
-  err += stringf("%s:", __func__);
-
   if (fd != -1)
   {
-    err += string("Trying to connect but already connected.");
+    error = FUNC + "Trying to connect but already connected";
     return -1;
   }
 
@@ -533,7 +528,7 @@ int Smb2Socket::connect(Smb2ContextPtr smb2, std::string& server, std::string& e
     string tmp = server.substr(pos+1);
     if ((pos = tmp.find("]")) == std::string::npos)
     {
-      err += stringf("Invalid address:%s Missing ']' in IPv6 address", server.c_str());
+      error = FUNC + stringf("Invalid address:%s Missing ']' in IPv6 address", server.c_str());
       return -1;
     }
     host = tmp.substr(0, pos);
@@ -542,7 +537,7 @@ int Smb2Socket::connect(Smb2ContextPtr smb2, std::string& server, std::string& e
   /* is it a hostname ? */
   if (getaddrinfo(host.c_str(), NULL, NULL, &ai) != 0)
   {
-    err += stringf("Invalid address:%s Can not resolv into IPv4/v6.", server.c_str());
+    error = FUNC + stringf("Invalid address:%s Can not resolv into IPv4/v6.", server.c_str());
     return -1;
   }
 
@@ -566,7 +561,7 @@ int Smb2Socket::connect(Smb2ContextPtr smb2, std::string& server, std::string& e
 #endif
     break;
     default:
-      err += stringf("Unknown address family :%d. Only IPv4/IPv6 supported so far.", ai->ai_family);
+      error = FUNC + stringf("Unknown address family :%d. Only IPv4/IPv6 supported so far.", ai->ai_family);
       freeaddrinfo(ai);
       return -1;
   }
@@ -576,7 +571,7 @@ int Smb2Socket::connect(Smb2ContextPtr smb2, std::string& server, std::string& e
   fd = socket(family, SOCK_STREAM, 0);
   if (fd == -1)
   {
-    err += stringf("Failed to open smb2 socket. Errno:%s(%d).", strerror(errno), errno);
+    error = FUNC + stringf("Failed to open smb2 socket. Errno:%s(%d).", strerror(errno), errno);
     return -1;
   }
 
@@ -585,7 +580,7 @@ int Smb2Socket::connect(Smb2ContextPtr smb2, std::string& server, std::string& e
 
   if (::connect(fd, (struct sockaddr *)&ss, socksize) != 0 && errno != EINPROGRESS)
   {
-    err += stringf("Connect failed with errno : %s(%d)", strerror(errno), errno);
+    error = FUNC + stringf("Connect failed with errno : %s(%d)", strerror(errno), errno);
     close();
     return -1;
   }

@@ -52,8 +52,9 @@ public:
   virtual int smb2ProcessReplyAndAppData(Smb2ContextPtr smb2) = 0;
 
 protected:
-  int smb2_update_preauth_integrity_hash(Smb2ContextPtr  smb2,
-                                         smb2_io_vectors *iovs);
+  int smb2UpdatePreauthIntegrityHash(Smb2ContextPtr  smb2,
+                                     smb2_io_vectors *iovs,
+                                     std::string     &error);
   bool smb2_is_error_response();
   int smb2_process_error_fixed(Smb2ContextPtr smb2);
   int smb2_process_error_variable(Smb2ContextPtr smb2);

@@ -44,16 +44,16 @@ public:
   /* The following three functions are used to integrate OpenSmbC in an event system. */
   int smb2_get_fd() { return fd; }
   int smb2_which_events(Smb2ContextPtr smb2);
-  int smb2_service(Smb2ContextPtr smb2, int revents);
+  int smb2_service(Smb2ContextPtr smb2, int revents, std::string& error);
 
 private:
   void setNonBlocking();
   int  setSockopt(int optname, int value);
-  int  writeIovec(Smb2ContextPtr smb2, smb2_iovec &v);
-  int  sendPdu(Smb2ContextPtr smb2, Smb2Pdu *pdu);
-  int  sendPdus(Smb2ContextPtr smb2);
-  int  readIovec(Smb2ContextPtr smb2, struct smb2_iovec &v);
-  int  receivePdus(Smb2ContextPtr smb2);
+  int  writeIovec(Smb2ContextPtr smb2, smb2_iovec &v, std::string& error);
+  int  sendPdu(Smb2ContextPtr smb2, Smb2Pdu *pdu, std::string& error);
+  int  sendPdus(Smb2ContextPtr smb2, std::string& error);
+  int  readIovec(Smb2ContextPtr smb2, struct smb2_iovec &v, std::string& error);
+  int  receivePdus(Smb2ContextPtr smb2, std::string& error);
 
 public:
   int            fd;

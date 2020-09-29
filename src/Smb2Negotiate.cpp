@@ -475,17 +475,17 @@ Smb2Negotiate::smb2ProcessReplyAndAppData(Smb2ContextPtr smb2)
     smb2->preauthIntegrityHashLength = EVP_MD_size(EVP_sha512());
 
     // hash the request
-    if (smb2_update_preauth_integrity_hash(smb2, &out) < 0)
+    if (smb2UpdatePreauthIntegrityHash(smb2, &out, err) < 0)
     {
-      err = stringf("NEG_REQ - smb2_update_preauth_integrity_hash failed - %s", smb2->smb2_get_error());
+      err = stringf("NEG_REQ - smb2UpdatePreauthIntegrityHash failed - %s", err.c_str());
       appData->setStatusMsg(SMB2_STATUS_INSUFFICIENT_RESOURCES, err);
       smb2->endSendReceive();
       return 0;
     }
     // hash the response
-    if (smb2_update_preauth_integrity_hash(smb2, &in) < 0)
+    if (smb2UpdatePreauthIntegrityHash(smb2, &in, err) < 0)
     {
-      err = stringf("NEG_RESP - smb2_update_preauth_integrity_hash failed - %s", smb2->smb2_get_error());
+      err = stringf("NEG_RESP - smb2UpdatePreauthIntegrityHash failed - %s", err.c_str());
       appData->setStatusMsg(SMB2_STATUS_INSUFFICIENT_RESOURCES, err);
       smb2->endSendReceive();
       return 0;

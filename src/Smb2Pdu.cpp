@@ -9,6 +9,8 @@
 #include "Smb2Pdu.h"
 #include "Smb2Signing.h"
 
+#define FUNC stringf("%s: ", __func__)
+
 Smb2Pdu::Smb2Pdu(Smb2ContextPtr    smb2,
                  enum smb2_command command,
                  AppData           *appData)
@@ -225,10 +227,11 @@ void Smb2Pdu::encodeHeader(Smb2ContextPtr smb2)
 }
 
 int
-Smb2Pdu::decodeHeader(smb2_iovec *iov, struct smb2_header *hdr, string& err)
+Smb2Pdu::decodeHeader(smb2_iovec *iov, struct smb2_header *hdr, string& error)
 {
-  if (iov->len != SMB2_HEADER_SIZE) {
-    err = string("io vector for header is wrong size");
+  if (iov->len != SMB2_HEADER_SIZE)
+  {
+    error = FUNC + "IO vector for header is of wrong size";
     return -1;
   }
 
@@ -307,15 +310,16 @@ int Smb2Pdu::smb2ReplyGetFixedSize()
  * repeat the above step with session setup till it is successful
  */
 int
-Smb2Pdu::smb2_update_preauth_integrity_hash(Smb2ContextPtr  smb2,
-                                            smb2_io_vectors *iovs)
+Smb2Pdu::smb2UpdatePreauthIntegrityHash(Smb2ContextPtr  smb2,
+                                        smb2_io_vectors *iovs,
+                                        string&         error)
 {
   EVP_MD_CTX *mdctx = NULL;
   uint32_t digestLen = 0;
 
   if ((mdctx = EVP_MD_CTX_create()) == NULL)
   {
-    smb2->smb2_set_error("smb2_update_preauth_integrity_hash:Failed to allocate EVP_MD_CTX");
+    error = FUNC + "Failed to allocate EVP_MD_CTX";
     return -1;
   }
 
