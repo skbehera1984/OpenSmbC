@@ -33,9 +33,9 @@ if(OPENSSL_FOUND)
   list(APPEND SOURCES Smb2Signing.cpp)
 endif()
 
-add_library(smb2 ${SOURCES})
-target_link_libraries(smb2 PUBLIC ${core_DEPENDS} ${CORE_LIBRARIES})
-set_target_properties(smb2 PROPERTIES
+add_library(OpenSmbC ${SOURCES})
+target_link_libraries(OpenSmbC PUBLIC ${core_DEPENDS} ${CORE_LIBRARIES})
+set_target_properties(OpenSmbC PROPERTIES
                            VERSION ${PROJECT_VERSION}
                            SOVERSION ${SOVERSION})
 if(NOT MSVC)
@@ -47,7 +47,7 @@ else()
   endif()
 endif()
 
-install(TARGETS smb2 EXPORT smb2
+install(TARGETS OpenSmbC EXPORT OpenSmbC
                      RUNTIME DESTINATION bin
                      ARCHIVE DESTINATION lib
                      LIBRARY DESTINATION lib)

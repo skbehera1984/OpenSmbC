@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.8)
-project (libsmb2++)
+project (OpenSmbC)
 
 #switch this ON to build shared library
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
@@ -20,7 +20,6 @@ set(ARCH ${MARCH}-${OS})
 message("Build Architecture = " ${ARCH})
 
 include_directories("${PROJECT_SOURCE_DIR}/include")
-#include_directories("${PROJECT_SOURCE_DIR}/include/smb2")
 
 # check for the gssapi libraries and headers
 find_library(GSSAPI_LIBRARY NAMES gssapi_krb5)

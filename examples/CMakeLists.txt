@@ -16,9 +16,9 @@ set(SOURCES smb2-cat
 foreach(TARGET ${SOURCES})
   add_executable(${TARGET} ${TARGET}.cpp)
   target_link_libraries(${TARGET} ${CORE_LIBRARIES})
-  target_link_libraries(${TARGET} smb2 gssapi_krb5 krb5)
+  target_link_libraries(${TARGET} OpenSmbC gssapi_krb5 krb5)
   link_directories("${CMAKE_BINARY_DIR}/lib")
-  add_dependencies(${TARGET} smb2)
+  add_dependencies(${TARGET} OpenSmbC)
 endforeach()
 
 add_definitions(-Werror "-D_U_=__attribute__((unused))")
