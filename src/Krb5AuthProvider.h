@@ -23,7 +23,7 @@ struct private_auth_data
 class Krb5AuthProvider : public Smb2AuthProvider
 {
 public:
-  Krb5AuthProvider() {}
+  Krb5AuthProvider() { krb5AuthData = nullptr; }
   virtual ~Krb5AuthProvider();
 
   int negotiateReply(Smb2ContextPtr smb2, std::string& err);

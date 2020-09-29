@@ -47,6 +47,9 @@ Krb5AuthProvider::krb5_free_auth_data()
 {
   uint32_t maj, min;
 
+  if (!krb5AuthData)
+    return;
+
   /* Delete context */
   if (krb5AuthData->context)
   {

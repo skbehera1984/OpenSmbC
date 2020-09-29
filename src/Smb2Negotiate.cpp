@@ -514,7 +514,13 @@ Smb2Negotiate::smb2ProcessReplyAndAppData(Smb2ContextPtr smb2)
     return 0;
   }
 
-  smb2->authenticator->negotiateReply(smb2, err);
+  if (smb2->authenticator->negotiateReply(smb2, err) < 0)
+  {
+    smb2->close();
+    appData->setStatusMsg(SMB2_STATUS_LOGON_FAILURE, err);
+    smb2->endSendReceive();
+    return 0;
+  }
 
   /* Now send the session setup request */
   Smb2Pdu *pdu;
