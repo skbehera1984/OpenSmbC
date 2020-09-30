@@ -24,8 +24,9 @@ Smb2Write::encodeRequest(Smb2ContextPtr smb2, void *Req)
 
   len = SMB2_WRITE_REQUEST_SIZE & 0xfffffffe;
   buf = (uint8_t*)malloc(len);
-  if (buf == NULL) {
-    smb2->smb2_set_error("Failed to allocate write buffer");
+  if (buf == NULL)
+  {
+    appData->setErrorMsg("Smb2Write::encodeRequest:Failed to allocate write buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -33,7 +34,8 @@ Smb2Write::encodeRequest(Smb2ContextPtr smb2, void *Req)
   smb2_iovec iov(buf, len, free);
   out.smb2_add_iovector(iov);
 
-  if (!smb2->supports_multi_credit && req->length > 60 * 1024) {
+  if (!smb2->supports_multi_credit && req->length > 60 * 1024)
+  {
     req->length = 60 * 1024;
   }
   iov.smb2_set_uint16(0, SMB2_WRITE_REQUEST_SIZE);
@@ -49,7 +51,7 @@ Smb2Write::encodeRequest(Smb2ContextPtr smb2, void *Req)
 
   if (req->write_channel_info_length > 0 || req->write_channel_info != NULL)
   {
-    smb2->smb2_set_error("ChannelInfo not yet implemented");
+    appData->setErrorMsg("Smb2Write::encodeRequest:ChannelInfo not yet implemented");
     return -1;
   }
 
@@ -65,9 +67,13 @@ Smb2Write::createPdu(Smb2ContextPtr            smb2,
 
   pdu = new Smb2Write(smb2, writeData);
   if (pdu == NULL)
+  {
+    writeData->setErrorMsg("Failed to allocate Smb2Write PDU");
     return NULL;
+  }
 
-  if (pdu->encodeRequest(smb2, req)) {
+  if (pdu->encodeRequest(smb2, req))
+  {
     delete pdu;
     return NULL;
   }

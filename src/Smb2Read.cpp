@@ -25,8 +25,9 @@ Smb2Read::encodeRequest(Smb2ContextPtr smb2, void *Req)
 
   len = SMB2_READ_REQUEST_SIZE & 0xfffffffe;
   buf = (uint8_t*)malloc(len);
-  if (buf == NULL) {
-    smb2->smb2_set_error("Failed to allocate read buffer");
+  if (buf == NULL)
+  {
+    appData->setErrorMsg("Smb2Read::encodeRequest:Failed to allocate read buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -34,7 +35,8 @@ Smb2Read::encodeRequest(Smb2ContextPtr smb2, void *Req)
   smb2_iovec iov(buf, len, free);
   out.smb2_add_iovector(iov);
 
-  if (!smb2->supports_multi_credit && req->length > 60 * 1024) {
+  if (!smb2->supports_multi_credit && req->length > 60 * 1024)
+  {
     req->length = 60 * 1024;
     req->minimum_count = 0;
   }
@@ -51,14 +53,15 @@ Smb2Read::encodeRequest(Smb2ContextPtr smb2, void *Req)
 
   if (req->read_channel_info_length > 0 || req->read_channel_info != NULL)
   {
-    smb2->smb2_set_error("ChannelInfo not yet implemented");
+    appData->setErrorMsg("Smb2Read::encodeRequest:ChannelInfo not yet implemented");
     return -1;
   }
 
   /* The buffer must contain at least one byte, even if we do not
    * have any read channel info.
    */
-  if (req->read_channel_info == NULL) {
+  if (req->read_channel_info == NULL)
+  {
     static uint8_t zero;
 
     iov.buf = &zero; iov.len = 1; iov.free = NULL;
@@ -76,11 +79,14 @@ Smb2Read::createPdu(Smb2ContextPtr           smb2,
   Smb2Pdu *pdu;
 
   pdu = new Smb2Read(smb2, readData);
-  if (pdu == NULL) {
+  if (pdu == NULL)
+  {
+    readData->setErrorMsg("Failed to allocate Smb2Read PDU");
     return NULL;
   }
 
-  if (pdu->encodeRequest(smb2, req)) {
+  if (pdu->encodeRequest(smb2, req))
+  {
     delete pdu;
     return NULL;
   }

@@ -26,7 +26,7 @@ Smb2Flush::encodeRequest(Smb2ContextPtr smb2, void *Req)
   buf = (uint8_t*)malloc(len);
   if (buf == NULL)
   {
-    smb2->smb2_set_error("Failed to allocate flush buffer");
+    appData->setErrorMsg("Smb2Flush::encodeRequest:Failed to allocate flush buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -50,7 +50,10 @@ Smb2Flush::createPdu(Smb2ContextPtr            smb2,
 
   pdu = new Smb2Flush(smb2, flushData);
   if (pdu == NULL)
+  {
+    flushData->setErrorMsg("Failed to allocate Smb2Flush PDU");
     return NULL;
+  }
 
   if (pdu->encodeRequest(smb2, req))
   {

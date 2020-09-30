@@ -27,7 +27,7 @@ Smb2Logoff::encodeRequest(Smb2ContextPtr smb2, void *Req)
   buf = (uint8_t*)malloc(len);
   if (buf == NULL)
   {
-    smb2->smb2_set_error("Failed to allocate logoff buffer");
+    appData->setErrorMsg("Smb2Logoff::encodeRequest:Failed to allocate logoff buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -47,7 +47,10 @@ Smb2Logoff::createPdu(Smb2ContextPtr smb2, AppData *logOffData)
 
   pdu = new Smb2Logoff(smb2, logOffData);
   if (pdu == NULL)
+  {
+    logOffData->setErrorMsg("Failed to allocate Smb2Logoff PDU");
     return NULL;
+  }
 
   if (pdu->encodeRequest(smb2, NULL))
   {

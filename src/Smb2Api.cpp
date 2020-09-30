@@ -73,7 +73,6 @@ Smb2Context::smb2_disconnect_share()
   AppData disConData;
   if (Smb2BuildDisConnectRequest(&disConData) != 0)
   {
-    this->smb2_set_error("Smb2BuildDisConnectRequest failed");
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 

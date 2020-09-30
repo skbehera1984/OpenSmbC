@@ -283,12 +283,6 @@ encode_ntlm_auth(Smb2ContextPtr smb2, ntlm_auth_data *auth_data, char *server_ch
   tv.tv_usec = 0;
   t = timevalToWinEpoch(&tv);
 
-  if (auth_data->password.empty())
-  {
-    smb2->smb2_set_error("No password set, can not use NTLM\n");
-    goto finished;
-  }
-
   /* Generate Concatenation of(NTProofStr, temp) */
   if (NTOWFv2(auth_data->user.c_str(),
               auth_data->password.c_str(),
@@ -526,6 +520,11 @@ NtlmAuthProvider::ntlmssp_get_session_key(uint8_t **key, uint8_t *key_size)
 int
 NtlmAuthProvider::negotiateReply(Smb2ContextPtr smb2, std::string& err)
 {
+  if (smb2->password.empty())
+  {
+    err = "No password set, can not use NTLM";
+    return -1;
+  }
   return ntlmssp_init_context(smb2->user,
                               smb2->password,
                               smb2->domain,

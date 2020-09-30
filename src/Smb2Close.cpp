@@ -25,8 +25,9 @@ Smb2Close::encodeRequest(Smb2ContextPtr smb2, void *Req)
 
   len = SMB2_CLOSE_REQUEST_SIZE & 0xfffffffe;
   buf = (uint8_t*)malloc(len);
-  if (buf == NULL) {
-    smb2->smb2_set_error("Failed to allocate close buffer");
+  if (buf == NULL)
+  {
+    appData->setErrorMsg("Smb2Close::encodeRequest:Failed to allocate close buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -50,11 +51,14 @@ Smb2Close::createPdu(Smb2ContextPtr            smb2,
   Smb2Pdu *pdu = NULL;
 
   pdu = new Smb2Close(smb2, closeData);
-  if (pdu == NULL) {
+  if (pdu == NULL)
+  {
+    closeData->setErrorMsg("Failed to allocate Smb2Close PDU");
     return NULL;
   }
 
-  if (pdu->encodeRequest(smb2, req)) {
+  if (pdu->encodeRequest(smb2, req))
+  {
     delete pdu;
     return NULL;
   }

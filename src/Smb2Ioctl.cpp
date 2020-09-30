@@ -24,8 +24,9 @@ Smb2Ioctl::encodeRequest(Smb2ContextPtr smb2, void *Req)
 
   len = SMB2_IOCTL_REQUEST_SIZE & 0xfffffffe;
   buf = (uint8_t*)malloc(len);
-  if (buf == NULL) {
-    smb2->smb2_set_error("Failed to allocate ioctl param buffer");
+  if (buf == NULL)
+  {
+    appData->setErrorMsg("Smb2Ioctl::encodeRequest:Failed to allocate ioctl param buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -50,8 +51,9 @@ Smb2Ioctl::encodeRequest(Smb2ContextPtr smb2, void *Req)
   iov.smb2_set_uint32(52, req->reserved2);
 
   buf = (uint8_t*)malloc(req->input_count);
-  if (buf == NULL) {
-    smb2->smb2_set_error("Failed to allocate ioctl payload");
+  if (buf == NULL)
+  {
+    appData->setErrorMsg("Smb2Ioctl::encodeRequest:Failed to allocate ioctl payload");
     return -1;
   }
   memset(buf, 0, req->input_count);
@@ -71,11 +73,14 @@ Smb2Ioctl::createPdu(Smb2ContextPtr            smb2,
   Smb2Pdu *pdu;
 
   pdu = new Smb2Ioctl(smb2, ioctlData);
-  if (pdu == NULL) {
+  if (pdu == NULL)
+  {
+    ioctlData->setErrorMsg("Failed to allocate Smb2Ioctl PDU");
     return NULL;
   }
 
-  if (pdu->encodeRequest(smb2, req)) {
+  if (pdu->encodeRequest(smb2, req))
+  {
     delete pdu;
     return NULL;
   }

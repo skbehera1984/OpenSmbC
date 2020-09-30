@@ -62,8 +62,9 @@ Smb2QueryDir::encodeRequest(Smb2ContextPtr smb2, void *Req)
 
   len = SMB2_QUERY_DIRECTORY_REQUEST_SIZE & 0xfffffffe;
   buf = (uint8_t*)malloc(len);
-  if (buf == NULL) {
-    smb2->smb2_set_error("Failed to allocate query buffer");
+  if (buf == NULL)
+  {
+    appData->setErrorMsg("Smb2QueryDir::encodeRequest:Failed to allocate query buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -72,10 +73,12 @@ Smb2QueryDir::encodeRequest(Smb2ContextPtr smb2, void *Req)
   out.smb2_add_iovector(iov);
 
   /* Name */
-  if (req->name && req->name[0]) {
+  if (req->name && req->name[0])
+  {
     name = utf8_to_ucs2(req->name);
-    if (name == NULL) {
-      smb2->smb2_set_error("Could not convert name into UCS2");
+    if (name == NULL)
+    {
+      appData->setErrorMsg("Smb2QueryDir::encodeRequest:Could not convert name into UCS2");
       return -1;
     }
     iov.smb2_set_uint16(26, 2 * name->len);
@@ -91,10 +94,12 @@ Smb2QueryDir::encodeRequest(Smb2ContextPtr smb2, void *Req)
   iov.smb2_set_uint32(28, req->output_buffer_length);
 
   /* Name */
-  if (name) {
+  if (name)
+  {
     buf = (uint8_t*)malloc(2 * name->len);
-    if (buf == NULL) {
-      smb2->smb2_set_error("Failed to allocate qdir name");
+    if (buf == NULL)
+    {
+      appData->setErrorMsg("Smb2QueryDir::encodeRequest:Failed to allocate qdir name");
       free(name);
       return -1;
     }
@@ -115,11 +120,14 @@ Smb2QueryDir::createPdu(Smb2ContextPtr                      smb2,
   Smb2Pdu *pdu;
 
   pdu = new Smb2QueryDir(smb2, qDirData);
-  if (pdu == NULL) {
+  if (pdu == NULL)
+  {
+    qDirData->setErrorMsg("Failed to allocate Smb2QueryDir PDU");
     return NULL;
   }
 
-  if (pdu->encodeRequest(smb2, req)) {
+  if (pdu->encodeRequest(smb2, req))
+  {
     delete pdu;
     return NULL;
   }
@@ -239,8 +247,6 @@ Smb2QueryDir::smb2ProcessReplyAndAppData(Smb2ContextPtr smb2)
     pdu = Smb2QueryDir::createPdu(smb2, &req, appData);
     if (pdu == NULL)
     {
-      err += "Failed to create Smb2QueryDir PDU";
-      appData->setErrorMsg(err);
       smb2->endSendReceive();
       delete dir;
       return -1;

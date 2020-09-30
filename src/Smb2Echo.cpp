@@ -26,7 +26,7 @@ Smb2Echo::encodeRequest(Smb2ContextPtr smb2, void *Req)
   buf = (uint8_t*)malloc(len);
   if (buf == NULL)
   {
-    smb2->smb2_set_error("Failed to allocate echo buffer");
+    appData->setErrorMsg("Smb2Echo::encodeRequest:Failed to allocate echo buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -46,7 +46,10 @@ Smb2Echo::createPdu(Smb2ContextPtr smb2, AppData *echoData)
 
   pdu = new Smb2Echo(smb2, echoData);
   if (pdu == NULL)
+  {
+    echoData->setErrorMsg("Failed to allocate Smb2Echo PDU");
     return NULL;
+  }
 
   if (pdu->encodeRequest(smb2, NULL))
   {

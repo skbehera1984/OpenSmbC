@@ -25,15 +25,17 @@ Smb2QueryInfo::encodeRequest(Smb2ContextPtr smb2, void *Req)
   uint8_t *buf;
   struct smb2_query_info_request *req = (struct smb2_query_info_request *)Req;
 
-  if (req->input_buffer_length > 0) {
-    smb2->smb2_set_error("No support for input buffers, yet");
+  if (req->input_buffer_length > 0)
+  {
+    appData->setErrorMsg("Smb2QueryInfo::encodeRequest:No support for input buffers, yet");
     return -1;
   }
 
   len = SMB2_QUERY_INFO_REQUEST_SIZE & 0xfffffffe;
   buf = (uint8_t*)malloc(len);
-  if (buf == NULL) {
-    smb2->smb2_set_error("Failed to allocate query buffer");
+  if (buf == NULL)
+  {
+    appData->setErrorMsg("Smb2QueryInfo::encodeRequest:Failed to allocate query buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -66,11 +68,14 @@ Smb2QueryInfo::createPdu(Smb2ContextPtr                 smb2,
   Smb2Pdu *pdu;
 
   pdu = new Smb2QueryInfo(smb2, qInfoData);
-  if (pdu == NULL) {
+  if (pdu == NULL)
+  {
+    qInfoData->setErrorMsg("Failed to allocate Smb2QueryInfo PDU");
     return NULL;
   }
 
-  if (pdu->encodeRequest(smb2, req)) {
+  if (pdu->encodeRequest(smb2, req))
+  {
     delete pdu;
     return NULL;
   }

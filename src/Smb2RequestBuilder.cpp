@@ -163,7 +163,7 @@ Smb2Context::Smb2BuildConnectRequest(std::string& server,
   pdu = Smb2Negotiate::createPdu(this, &req, connData);
   if (pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2Negotiate PDU";
+    error = FUNC + connData->getErrorMsg();
     connData->setErrorMsg(error);
     return -1;
   }
@@ -213,7 +213,7 @@ Smb2Context::Smb2BuildQueryDirectoryRequest(smb2fh  *fh,
   pdu = Smb2QueryDir::createPdu(this, &req, qDirData);
   if (pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2QueryDir command";
+    error = FUNC + qDirData->getErrorMsg();
     qDirData->setErrorMsg(error);
     delete dir;
     delete qDirData;
@@ -275,7 +275,7 @@ Smb2Context::Smb2BuildCreateRequest(std::string& path,
   pdu = Smb2Create::createPdu(this, &req, createData);
   if (pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2Create PDU";
+    error = FUNC + createData->getErrorMsg();
     createData->setErrorMsg(error);
     delete createData;
     return -ENOMEM;
@@ -307,7 +307,7 @@ Smb2Context::Smb2BuildCloseRequest(smb2fh *fh, AppData *closeData)
   pdu = Smb2Close::createPdu(this, &req, closeData);
   if (pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2Close PDU";
+    error = FUNC + closeData->getErrorMsg();
     closeData->setErrorMsg(error);
     delete closeData;
     return -ENOMEM;
@@ -336,7 +336,7 @@ Smb2Context::Smb2BuildFlushRequest(smb2fh *fh, AppData *flushData)
   pdu = Smb2Flush::createPdu(this, &req, flushData);
   if (pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2Flush PDU";
+    error = FUNC + flushData->getErrorMsg();
     flushData->setErrorMsg(error);
     return -ENOMEM;
   }
@@ -403,7 +403,7 @@ Smb2Context::Smb2BuildReadRequest(smb2fh   *fh,
   pdu = Smb2Read::createPdu(this, &req, readData);
   if (pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2Read PDU";
+    error = FUNC + readData->getErrorMsg();
     readData->setErrorMsg(error);
     return -1;
   }
@@ -468,7 +468,7 @@ Smb2Context::Smb2BuildWriteRequest(smb2fh    *fh,
   pdu = Smb2Write::createPdu(this, &req, writeData);
   if (pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2Write PDU";
+    error = FUNC + writeData->getErrorMsg();
     writeData->setErrorMsg(error);
     return -ENOMEM;
   }
@@ -526,7 +526,7 @@ Smb2Context::Smb2BuildQueryInfoRequest(smb2fh         *fh,
   pdu = Smb2QueryInfo::createPdu(this, &qi_req, qiData);
   if (pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2QueryInfo PDU";
+    error = FUNC + qiData->getErrorMsg();
     qiData->setErrorMsg(error);
     return -1;
   }
@@ -565,7 +565,7 @@ Smb2Context::Smb2BuildQueryInfoRequest(std::string    &path,
     qiData->setErrorMsg(error);
     return -1;
   }
-  createData->setDelete(true);
+  createData->setDelete(true); // should it be deferred till the pdu is created??
 
   /* CREATE command */
   memset(&cr_req, 0, sizeof(struct smb2_create_request));
@@ -588,7 +588,7 @@ Smb2Context::Smb2BuildQueryInfoRequest(std::string    &path,
   pdu = Smb2Create::createPdu(this, &cr_req, createData);
   if (pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2Create PDU";
+    error = FUNC + createData->getErrorMsg();
     qiData->setErrorMsg(error);
     delete createData;
     return -1;
@@ -616,7 +616,7 @@ Smb2Context::Smb2BuildQueryInfoRequest(std::string    &path,
   next_pdu = Smb2QueryInfo::createPdu(this, &qi_req, qiData);
   if (next_pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2QueryInfo PDU";
+    error = FUNC + qiData->getErrorMsg();
     qiData->setErrorMsg(error);
     delete pdu;
     return -1;
@@ -631,7 +631,7 @@ Smb2Context::Smb2BuildQueryInfoRequest(std::string    &path,
     delete pdu;
     return -1;
   }
-  closeData->setDelete(true);
+  closeData->setDelete(true); // TODO - should it be deferred??
 
   /* CLOSE command */
   memset(&cl_req, 0, sizeof(struct smb2_close_request));
@@ -642,7 +642,7 @@ Smb2Context::Smb2BuildQueryInfoRequest(std::string    &path,
   next_pdu = Smb2Close::createPdu(this, &cl_req, closeData);
   if (next_pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2Close PDU";
+    error = FUNC + closeData->getErrorMsg();
     qiData->setErrorMsg(error);
     delete closeData;
     delete pdu;
@@ -670,7 +670,7 @@ Smb2Context::Smb2BuildDisConnectRequest(AppData *disConData)
   pdu = Smb2TreeDisconnect::createPdu(this, disConData);
   if (pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2TreeDisconnect PDU";
+    error = FUNC + disConData->getErrorMsg();
     disConData->setErrorMsg(error);
     return -ENOMEM;
   }
@@ -694,7 +694,7 @@ Smb2Context::Smb2BuildEchoRequest(AppData *echoData)
   pdu = Smb2Echo::createPdu(this, echoData);
   if (pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2Echo PDU";
+    error = FUNC + echoData->getErrorMsg();
     echoData->setErrorMsg(error);
     return -1;
   }
@@ -759,7 +759,7 @@ Smb2Context::Smb2BuildIoctlRequest(smb2fh   *fh,
   pdu = Smb2Ioctl::createPdu(this, &req, ioctlData);
   if (pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2Ioctl PDU";
+    error = FUNC + ioctlData->getErrorMsg();
     ioctlData->setErrorMsg(error);
     return -1;
   }
@@ -841,7 +841,7 @@ Smb2Context::Smb2BuildSetInforequest(smb2fh         *fh,
   pdu = Smb2SetInfo::createPdu(this, &si_req, setinfoData);
   if (pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2SetInfo PDU";
+    error = FUNC + setinfoData->getErrorMsg();
     setinfoData->setErrorMsg(error);
     return -1;
   }
@@ -936,7 +936,7 @@ Smb2Context::Smb2BuildSetInforequest(string&        path,
   pdu = Smb2Create::createPdu(this, &cr_req, createData);
   if (pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2Create PDU";
+    error = FUNC + createData->getErrorMsg();
     setinfoData->setErrorMsg(error);
     delete createData;
     return -1;
@@ -977,7 +977,7 @@ Smb2Context::Smb2BuildSetInforequest(string&        path,
   next_pdu = Smb2SetInfo::createPdu(this, &si_req, setinfoData);
   if (next_pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2SetInfo PDU";
+    error = FUNC + setinfoData->getErrorMsg();
     setinfoData->setErrorMsg(error);
     delete pdu;
     return -1;
@@ -1004,7 +1004,7 @@ Smb2Context::Smb2BuildSetInforequest(string&        path,
   next_pdu = Smb2Close::createPdu(this, &cl_req, closeData);
   if (next_pdu == NULL)
   {
-    error = FUNC + "Failed to create Smb2Close PDU"; // TODO sarat - add the err from createPdu
+    error = FUNC + closeData->getErrorMsg();
     setinfoData->setErrorMsg(error);
     delete closeData;
     delete pdu;

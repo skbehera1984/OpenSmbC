@@ -26,8 +26,9 @@ Smb2Create::encodeRequest(Smb2ContextPtr smb2, void *Req)
 
   len = SMB2_CREATE_REQUEST_SIZE & 0xfffffffe;
   buf = (uint8_t*)malloc(len);
-  if (buf == NULL) {
-    smb2->smb2_set_error("Failed to allocate create buffer");
+  if (buf == NULL)
+  {
+    appData->setErrorMsg("Smb2Create::encodeRequest:Failed to allocate create buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -41,7 +42,7 @@ Smb2Create::encodeRequest(Smb2ContextPtr smb2, void *Req)
     name = utf8_to_ucs2(req->name);
     if (name == NULL)
     {
-      smb2->smb2_set_error("Could not convert name into UCS2");
+      appData->setErrorMsg("Smb2Create::encodeRequest:Could not convert name into UCS2");
       return -1;
     }
     /* name length */
@@ -68,7 +69,7 @@ Smb2Create::encodeRequest(Smb2ContextPtr smb2, void *Req)
     buf = (uint8_t*)malloc(2 * name->len);
     if (buf == NULL)
     {
-      smb2->smb2_set_error("Failed to allocate create name");
+      appData->setErrorMsg("Smb2Create::encodeRequest:Failed to allocate create name");
       free(name);
       return -1;
     }
@@ -91,7 +92,7 @@ Smb2Create::encodeRequest(Smb2ContextPtr smb2, void *Req)
   /* Create Context */
   if (req->create_context_length)
   {
-    smb2->smb2_set_error("Create context not implemented, yet");
+    appData->setErrorMsg("Smb2Create::encodeRequest:Create context not implemented, yet");
     return -1;
   }
 
@@ -116,11 +117,14 @@ Smb2Create::createPdu(Smb2ContextPtr             smb2,
   Smb2Pdu *pdu;
 
   pdu = new Smb2Create(smb2, createData);
-  if (pdu == NULL) {
+  if (pdu == NULL)
+  {
+    createData->setErrorMsg("Failed to allocate Smb2Create PDU");
     return NULL;
   }
 
-  if (pdu->encodeRequest(smb2, req)) {
+  if (pdu->encodeRequest(smb2, req))
+  {
     delete pdu;
     return NULL;
   }

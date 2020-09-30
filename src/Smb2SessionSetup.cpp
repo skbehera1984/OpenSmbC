@@ -42,8 +42,9 @@ Smb2SessionSetup::encodeRequest(Smb2ContextPtr smb2, void *Req)
 
   len = SMB2_SESSION_SETUP_REQUEST_SIZE & 0xfffffffe;
   buf = (uint8_t*)malloc(len);
-  if (buf == NULL) {
-    smb2->smb2_set_error("Failed to allocate session setup buffer");
+  if (buf == NULL)
+  {
+    appData->setErrorMsg("Smb2SessionSetup::encodeRequest:Failed to allocate session setup buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -62,8 +63,9 @@ Smb2SessionSetup::encodeRequest(Smb2ContextPtr smb2, void *Req)
 
   /* Security buffer */
   buf = (uint8_t*)malloc(req->security_buffer_length);
-  if (buf == NULL) {
-    smb2->smb2_set_error("Failed to allocate secbuf");
+  if (buf == NULL)
+  {
+    appData->setErrorMsg("Smb2SessionSetup::encodeRequest:Failed to allocate secbuf");
     return -1;
   }
   memcpy(buf, req->security_buffer, req->security_buffer_length);
@@ -82,7 +84,9 @@ Smb2SessionSetup::createPdu(Smb2ContextPtr                    smb2,
   Smb2Pdu *pdu;
 
   pdu = new Smb2SessionSetup(smb2, sessionData);
-  if (pdu == NULL) {
+  if (pdu == NULL)
+  {
+    sessionData->setErrorMsg("Failed to allocate Smb2SessionSetup PDU");
     return NULL;
   }
 
@@ -241,9 +245,8 @@ Smb2SessionSetup::smb2ProcessReplyAndAppData(Smb2ContextPtr smb2)
     pdu = Smb2SessionSetup::createPdu(smb2, &req, appData);
     if (pdu == NULL)
     {
-      err = "Failed to create Smb2SessionSetup PDU";
+      appData->setNtStatus(SMB2_STATUS_NO_MEMORY);
       smb2->close();
-      appData->setStatusMsg(SMB2_STATUS_NO_MEMORY, err);
       smb2->endSendReceive();
       return 0;
     }
@@ -368,9 +371,8 @@ Smb2SessionSetup::smb2ProcessReplyAndAppData(Smb2ContextPtr smb2)
   pdu = Smb2TreeConnect::createPdu(smb2, &req, appData);
   if (pdu == NULL)
   {
+    appData->setNtStatus(SMB2_STATUS_NO_MEMORY);
     smb2->close();
-    err = "Failed to create Smb2TreeConnect PDU";
-    appData->setStatusMsg(SMB2_STATUS_NO_MEMORY, err);
     smb2->endSendReceive();
     return -1;
   }

@@ -25,8 +25,9 @@ Smb2TreeConnect::encodeRequest(Smb2ContextPtr smb2, void *Req)
 
   len = SMB2_TREE_CONNECT_REQUEST_SIZE & 0xfffffffe;
   buf = (uint8_t*)malloc(len);
-  if (buf == NULL) {
-    smb2->smb2_set_error("Failed to allocate tree connect buffer");
+  if (buf == NULL)
+  {
+    appData->setErrorMsg("Smb2TreeConnect::encodeRequest:Failed to allocate tree connect buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -42,8 +43,9 @@ Smb2TreeConnect::encodeRequest(Smb2ContextPtr smb2, void *Req)
 
   /* Path */
   buf = (uint8_t*)malloc(req->path_length);
-  if (buf == NULL) {
-    smb2->smb2_set_error("Failed to allocate tcon path");
+  if (buf == NULL)
+  {
+    appData->setErrorMsg("Smb2TreeConnect::encodeRequest:Failed to allocate tcon path");
     return -1;
   }
   memcpy(buf, req->path, req->path_length);
@@ -61,11 +63,14 @@ Smb2TreeConnect::createPdu(Smb2ContextPtr                   smb2,
   Smb2Pdu *pdu;
 
   pdu = new Smb2TreeConnect(smb2, treeConData);
-  if (pdu == NULL) {
+  if (pdu == NULL)
+  {
+    treeConData->setErrorMsg("Failed to allocate Smb2TreeConnect PDU");
     return NULL;
   }
 
-  if (pdu->encodeRequest(smb2, req)) {
+  if (pdu->encodeRequest(smb2, req))
+  {
     delete pdu;
     return NULL;
   }

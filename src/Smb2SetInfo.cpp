@@ -26,8 +26,9 @@ Smb2SetInfo::encodeRequest(Smb2ContextPtr smb2, void *Req)
 
   len = SMB2_SET_INFO_REQUEST_SIZE & 0xfffffffe;
   buf = (uint8_t*)malloc(len);
-  if (buf == NULL) {
-    smb2->smb2_set_error("Failed to allocate set info buffer");
+  if (buf == NULL)
+  {
+    appData->setErrorMsg("Smb2SetInfo::encodeRequest:Failed to allocate set info buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -56,8 +57,9 @@ Smb2SetInfo::encodeRequest(Smb2ContextPtr smb2, void *Req)
           iov.smb2_set_uint32(4, len); /* buffer length */
 
           buf = (uint8_t*)malloc(len);
-          if (buf == NULL) {
-            smb2->smb2_set_error("Failed to allocate setinfo EOF data buffer");
+          if (buf == NULL)
+          {
+            appData->setErrorMsg("Smb2SetInfo::encodeRequest:Failed to allocate setinfo EOF data buffer");
             return -1;
           }
           memset(buf, 0, len);
@@ -74,12 +76,14 @@ Smb2SetInfo::encodeRequest(Smb2ContextPtr smb2, void *Req)
           rni = (struct smb2_file_rename_info *)req->input_data;
 
           struct ucs2 *name = utf8_to_ucs2((char *)(rni->file_name));
-          if (name == NULL) {
-            smb2->smb2_set_error("Could not convert name into UCS2");
+          if (name == NULL)
+          {
+            appData->setErrorMsg("Smb2SetInfo::encodeRequest:Could not convert name into UCS2");
             return -1;
           }
           /* Convert '/' to '\' */
-          for (i = 0; i < name->len; i++) {
+          for (i = 0; i < name->len; i++)
+          {
             iov.smb2_get_uint16(i * 2, &ch);
             if (ch == 0x002f) {
               iov.smb2_set_uint16(i * 2, 0x005c);
@@ -90,8 +94,9 @@ Smb2SetInfo::encodeRequest(Smb2ContextPtr smb2, void *Req)
           iov.smb2_set_uint32(4, len); /* buffer length */
 
           buf = (uint8_t*)malloc(len);
-          if (buf == NULL) {
-            smb2->smb2_set_error("Failed to allocate setinfo rename data buffer");
+          if (buf == NULL)
+          {
+            appData->setErrorMsg("Smb2SetInfo::encodeRequest:Failed to allocate setinfo rename data buffer");
             free(name);
             return -1;
           }
@@ -116,8 +121,9 @@ Smb2SetInfo::encodeRequest(Smb2ContextPtr smb2, void *Req)
 
           iov.smb2_set_uint32(4, len); /* buffer length */
           buf = (uint8_t*)malloc(len);
-          if (buf == NULL) {
-            smb2->smb2_set_error("Failed to allocate setinfo basic-info buffer");
+          if (buf == NULL)
+          {
+            appData->setErrorMsg("Smb2SetInfo::encodeRequest:Failed to allocate setinfo basic-info buffer");
             return -1;
           }
           memset(buf, 0, len);
@@ -148,8 +154,9 @@ Smb2SetInfo::encodeRequest(Smb2ContextPtr smb2, void *Req)
           iov.smb2_set_uint32(4, info->eabuf_len); /* buffer length */
 
           buf = (uint8_t*)malloc(info->eabuf_len);
-          if (buf == NULL) {
-            smb2->smb2_set_error("Failed to allocate set info data buffer");
+          if (buf == NULL)
+          {
+            appData->setErrorMsg("Smb2SetInfo::encodeRequest:Failed to allocate set info data buffer");
             return -1;
           }
           memset(buf, 0, info->eabuf_len);
@@ -161,7 +168,9 @@ Smb2SetInfo::encodeRequest(Smb2ContextPtr smb2, void *Req)
         }
         break;
         default:
-          smb2->smb2_set_error("Can not encode info_type/info_class %d/%d yet", req->info_type, req->file_info_class);
+          string err = stringf("Smb2SetInfo::encodeRequest:Can not encode info_type/info_class %d/%d yet",
+                               req->info_type, req->file_info_class);
+          appData->setErrorMsg(err);
           return -1;
       }
     }
@@ -174,8 +183,9 @@ Smb2SetInfo::encodeRequest(Smb2ContextPtr smb2, void *Req)
       iov.smb2_set_uint32(4, info->secbuf_len); /* buffer length */
 
       buf = (uint8_t*)malloc(info->secbuf_len);
-      if (buf == NULL) {
-        smb2->smb2_set_error("Failed to allocate setinfo security data buffer");
+      if (buf == NULL)
+      {
+        appData->setErrorMsg("Smb2SetInfo::encodeRequest:Failed to allocate setinfo security data buffer");
         return -1;
       }
       memset(buf, 0, info->secbuf_len);
@@ -186,7 +196,8 @@ Smb2SetInfo::encodeRequest(Smb2ContextPtr smb2, void *Req)
     }
     break;
     default:
-      smb2->smb2_set_error("Can not encode file info_type %d yet", req->info_type);
+      string err = stringf("Smb2SetInfo::encodeRequest:Can not encode file info_type %d yet", req->info_type);
+      appData->setErrorMsg(err);
       return -1;
   }
 
@@ -201,11 +212,14 @@ Smb2SetInfo::createPdu(Smb2ContextPtr               smb2,
   Smb2Pdu *pdu;
 
   pdu = new Smb2SetInfo(smb2, setInfoData);
-  if (pdu == NULL) {
+  if (pdu == NULL)
+  {
+    setInfoData->setErrorMsg("Failed to allocate Smb2SetInfo PDU");
     return NULL;
   }
 
-  if (pdu->encodeRequest(smb2, req)) {
+  if (pdu->encodeRequest(smb2, req))
+  {
     delete pdu;
     return NULL;
   }

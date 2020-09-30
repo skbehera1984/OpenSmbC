@@ -118,7 +118,7 @@ Smb2Negotiate::encodeRequest(Smb2ContextPtr smb2, void *Req)
   buf = (uint8_t*)malloc(len);
   if (buf == NULL)
   {
-    smb2->smb2_set_error("Failed to allocate negotiate buffer");
+    appData->setErrorMsg("Smb2Negotiate::encodeRequest:Failed to allocate negotiate buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -163,7 +163,10 @@ Smb2Negotiate::createPdu(Smb2ContextPtr                smb2,
 
   pdu = new Smb2Negotiate(smb2, negotiateData);
   if (pdu == nullptr)
+  {
+    negotiateData->setErrorMsg("Failed to allocate Smb2Negotiate PDU");
     return nullptr;
+  }
 
   if (pdu->encodeRequest(smb2, req))
   {
@@ -551,8 +554,7 @@ Smb2Negotiate::smb2ProcessReplyAndAppData(Smb2ContextPtr smb2)
   pdu = Smb2SessionSetup::createPdu(smb2, &req, appData);
   if (pdu == NULL)
   {
-    err = "Failed to create SessionSetup PDU";
-    appData->setStatusMsg(SMB2_STATUS_NO_MEMORY, err);
+    appData->setNtStatus(SMB2_STATUS_NO_MEMORY);
     smb2->endSendReceive();
     smb2->close();
     return 0;

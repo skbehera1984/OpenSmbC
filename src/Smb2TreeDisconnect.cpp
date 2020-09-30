@@ -26,8 +26,9 @@ Smb2TreeDisconnect::encodeRequest(Smb2ContextPtr smb2, void *Req)
   len = 4;
 
   buf = (uint8_t*)malloc(len);
-  if (buf == NULL) {
-    smb2->smb2_set_error("Failed to allocate tree disconnect buffer");
+  if (buf == NULL)
+  {
+    appData->setErrorMsg("Smb2TreeDisconnect::encodeRequest:Failed to allocate tree disconnect buffer");
     return -1;
   }
   memset(buf, 0, len);
@@ -46,11 +47,14 @@ Smb2TreeDisconnect::createPdu(Smb2ContextPtr smb2, AppData *treeDisConData)
   Smb2Pdu *pdu;
 
   pdu = new Smb2TreeDisconnect(smb2, treeDisConData);
-  if (pdu == NULL) {
+  if (pdu == NULL)
+  {
+    treeDisConData->setErrorMsg("Failed to allocate Smb2TreeDisconnect PDU");
     return NULL;
   }
 
-  if (pdu->encodeRequest(smb2, NULL)) {
+  if (pdu->encodeRequest(smb2, NULL))
+  {
     delete pdu;
     return NULL;
   }
@@ -89,8 +93,6 @@ Smb2TreeDisconnect::smb2ProcessReplyAndAppData(Smb2ContextPtr smb2)
   pdu = Smb2Logoff::createPdu(smb2, appData);
   if (pdu == NULL)
   {
-    string err = "Failed to create Smb2Logoff PDU";
-    appData->setErrorMsg(err);
     smb2->endSendReceive();
     return 0;
   }
