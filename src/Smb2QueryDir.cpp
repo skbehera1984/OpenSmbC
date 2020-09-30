@@ -15,11 +15,11 @@ Smb2QueryDir::~Smb2QueryDir()
 {
 }
 
-int
-smb2_decode_fileidfulldirectoryinformation(
-    Smb2ContextPtr smb2,
-    struct smb2_fileidfulldirectoryinformation *fs,
-    smb2_iovec *vec)
+bool
+smb2_decode_fileidfulldirectoryinformation(Smb2ContextPtr smb2,
+                                           struct smb2_fileidfulldirectoryinformation *fs,
+                                           smb2_iovec     *vec,
+                                           string         &error)
 {
         uint32_t name_len;
 
@@ -29,9 +29,10 @@ smb2_decode_fileidfulldirectoryinformation(
          * vector.
          */
         vec->smb2_get_uint32(60, &name_len);
-        if (80 + name_len > vec->len) {
-                smb2->smb2_set_error("Malformed name in query.\n");
-                return -1;
+        if (80 + name_len > vec->len)
+        {
+          error = stringf("%s:Malformed name in query.\n", __func__);
+          return false;
         }
 
         vec->smb2_get_uint32(0, &fs->next_entry_offset);
@@ -49,7 +50,7 @@ smb2_decode_fileidfulldirectoryinformation(
         vec->smb2_get_uint64(24, &fs->last_write_time);
         vec->smb2_get_uint64(32, &fs->change_time);
 
-        return 0;
+        return true;
 }
 
 int
@@ -228,7 +229,7 @@ Smb2QueryDir::smb2ProcessReplyAndAppData(Smb2ContextPtr smb2)
 
     if (decode_dirents(smb2, dir, &vec) < 0)
     {
-      err += "Failed to decode directory entries";
+      err += "Failed to decode directory entries - " + appData->getErrorMsg();
       appData->setErrorMsg(err);
       smb2->endSendReceive();
       delete dir;
@@ -285,15 +286,22 @@ int Smb2QueryDir::decode_dirents(Smb2ContextPtr smb2, smb2dir *dir, smb2_iovec *
     smb2_iovec tmp_vec;
 
     /* Make sure we do not go beyond end of vector */
-    if (offset >= vec->len) {
-      smb2->smb2_set_error("Malformed query reply.");
+    if (offset >= vec->len)
+    {
+      appData->setErrorMsg("Malformed query directory reply.");
       return -1;
     }
 
     tmp_vec.buf = &vec->buf[offset];
     tmp_vec.len = vec->len - offset;
 
-    smb2_decode_fileidfulldirectoryinformation(smb2, &fs, &tmp_vec);
+    string err;
+    if (!smb2_decode_fileidfulldirectoryinformation(smb2, &fs, &tmp_vec, err))
+    {
+      appData->setErrorMsg(err);
+      return -1;
+    }
+
     /* steal the name */
     ent.name = std::string(fs.name);
     ent.st.smb2_type = SMB2_TYPE_FILE;

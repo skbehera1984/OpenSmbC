@@ -22,9 +22,9 @@ public:
   virtual int smb2ProcessReplyAndAppData(Smb2ContextPtr smb2);
 
 private:
-  int encodeNegotiateContexts(Smb2ContextPtr                smb2,
-                              struct smb2_negotiate_request *req,
-                              uint16_t                      *num_ctx);
+  bool encodeNegotiateContexts(Smb2ContextPtr                smb2,
+                               struct smb2_negotiate_request *req,
+                               uint16_t                      *num_ctx);
   int decodePreauthIntegContext(Smb2ContextPtr              smb2,
                                 smb2_iovec                  *iov,
                                 struct smb2_negotiate_reply *rep);
@@ -32,9 +32,9 @@ private:
   int decodeEncryptionContext(Smb2ContextPtr              smb2,
                               smb2_iovec                  *iov,
                               struct smb2_negotiate_reply *rep);
-  int decodeNegotiateContexts(Smb2ContextPtr              smb2,
-                              smb2_iovec                  *iov,
-                              struct smb2_negotiate_reply *rep);
+  bool decodeNegotiateContexts(Smb2ContextPtr              smb2,
+                               smb2_iovec                  *iov,
+                               struct smb2_negotiate_reply *rep);
 };
 
 #endif // _SMB2_NEGOTIATE_H_

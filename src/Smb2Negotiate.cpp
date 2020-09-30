@@ -19,7 +19,7 @@ Smb2Negotiate::~Smb2Negotiate()
 {
 }
 
-int
+bool
 Smb2Negotiate::encodeNegotiateContexts(Smb2ContextPtr smb2,
                                        struct smb2_negotiate_request *req,
                                        uint16_t *num_ctx)
@@ -41,8 +41,8 @@ Smb2Negotiate::encodeNegotiateContexts(Smb2ContextPtr smb2,
     buf = (uint8_t*)malloc(len);
     if (buf == NULL)
     {
-      smb2->smb2_set_error("Failed to allocate preauth-integ context buffer");
-      return -1;
+      appData->setErrorMsg("Failed to allocate preauth-integ context buffer");
+      return false;
     }
     memset(buf, 0, len);
 
@@ -75,8 +75,8 @@ Smb2Negotiate::encodeNegotiateContexts(Smb2ContextPtr smb2,
     buf = (uint8_t*)malloc(len);
     if (buf == NULL)
     {
-      smb2->smb2_set_error("Failed to allocate encryption context buffer");
-      return -1;
+      appData->setErrorMsg("Failed to allocate encryption context buffer");
+      return false;
     }
     memset(buf, 0, len);
 
@@ -95,7 +95,7 @@ Smb2Negotiate::encodeNegotiateContexts(Smb2ContextPtr smb2,
 
   *num_ctx = ctx_count;
 
-  return 0;
+  return true;
 }
 
 int
@@ -135,7 +135,8 @@ Smb2Negotiate::encodeRequest(Smb2ContextPtr smb2, void *Req)
   for (i = 0; i < req->dialect_count; i++)
     iov.smb2_set_uint16(36 + i * sizeof(uint16_t), req->dialects[i]);
 
-  encodeNegotiateContexts(smb2, req, &ctx_count);
+  if (!encodeNegotiateContexts(smb2, req, &ctx_count))
+    return -1;
 
   if (req->max_dialect < SMB2_VERSION_0311)
   {
@@ -266,7 +267,7 @@ Smb2Negotiate::decodePreauthIntegContext(Smb2ContextPtr smb2,
   allHashAlgorithms = (uint16_t*) malloc(HashAlgorithmCount * sizeof(uint16_t));
   if (allHashAlgorithms == NULL)
   {
-    smb2->smb2_set_error("Failed to allocate buffer for allHashAlgorithms");
+    appData->setErrorMsg("decodePreauthIntegContext:Failed to allocate buffer for allHashAlgorithms");
     return -1;
   }
 
@@ -304,7 +305,7 @@ Smb2Negotiate::decodeEncryptionContext(Smb2ContextPtr smb2,
   Ciphers = (uint16_t*) malloc(CipherCount * sizeof(uint16_t));
   if (Ciphers == NULL)
   {
-    smb2->smb2_set_error("Failed to allocate buffer for Ciphers");
+    appData->setErrorMsg("decodeEncryptionContext:Failed to allocate buffer for Ciphers");
     return -1;
   }
 
@@ -321,7 +322,7 @@ Smb2Negotiate::decodeEncryptionContext(Smb2ContextPtr smb2,
   return offset;
 }
 
-int
+bool
 Smb2Negotiate::decodeNegotiateContexts(Smb2ContextPtr smb2,
                                        smb2_iovec   *iov,
                                        struct smb2_negotiate_reply *rep)
@@ -343,8 +344,7 @@ Smb2Negotiate::decodeNegotiateContexts(Smb2ContextPtr smb2,
       len = decodePreauthIntegContext(smb2, &tmpiov, rep);
       if (len < 0)
       {
-        smb2->smb2_set_error("Failed to decode preauth_integ_context - %s", smb2->smb2_get_error());
-        return -1;
+        return false;
       }
     }
     else if (ctx_type == SMB2_ENCRYPTION_CAPABILITIES)
@@ -352,8 +352,7 @@ Smb2Negotiate::decodeNegotiateContexts(Smb2ContextPtr smb2,
       len = decodeEncryptionContext(smb2, &tmpiov, rep);
       if (len < 0)
       {
-        smb2->smb2_set_error("Failed to decode encryption context - %s", smb2->smb2_get_error());
-        return -1;
+        return false;
       }
     }
 
@@ -364,7 +363,7 @@ Smb2Negotiate::decodeNegotiateContexts(Smb2ContextPtr smb2,
       len += padlen;
     }
   }
-  return 0;
+  return true;
 }
 
 int Smb2Negotiate::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
@@ -391,9 +390,9 @@ int Smb2Negotiate::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
 
   tmpiov.buf = &iov.buf[len];
   tmpiov.len = iov.len - len;
-  if (decodeNegotiateContexts(smb2, &tmpiov, rep) < 0)
+  if (!decodeNegotiateContexts(smb2, &tmpiov, rep))
   {
-    string err = stringf("Failed to decode smb2 negotiate contexts - %s", smb2->smb2_get_error());
+    string err = "decodeNegotiateContexts failed - " + appData->getErrorMsg();
     appData->setErrorMsg(err);
     return -1;
   }
