@@ -43,8 +43,10 @@ int main(int argc, char *argv[])
   }
 
   smb2->smb2SetSecurityMode(SMB2_NEGOTIATE_SIGNING_ENABLED);
-  smb2->smb2SetPassword("Welcome@123");
-  smb2->smb2SetAuthMode(SMB2_SEC_NTLMSSP);
+  smb2->smb2SetPassword("Rain@123");
+  smb2->smb2SetDomain("CTADEV.LOCAL");
+  //smb2->smb2SetAuthMode(SMB2_SEC_NTLMSSP);
+  smb2->smb2SetAuthMode(SMB2_SEC_KRB5);
 
   if (smb2->smb2_connect_share(url->server, url->share, url->user, err) != 0) {
     printf("smb2_connect_share failed. %s\n", err.c_str());

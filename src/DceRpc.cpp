@@ -26,13 +26,13 @@ static const uint8_t TRANSFER_SYNTAX_NDR_UUID_D[] = { 0x9f, 0xe8, 0x08, 0x00, 0x
 uint8_t
 get_byte_order_dr(struct rpc_data_representation data)
 {
-		return data.byte_order;
+  return data.byte_order;
 }
 
 uint8_t
 get_byte_order_hdr(struct rpc_header hdr)
 {
-        return hdr.data_rep.byte_order;
+  return hdr.data_rep.byte_order;
 }
 
 static void
@@ -43,105 +43,106 @@ set_context_uuid(struct context_uuid *ctx,
                  const uint8_t d[8]
                 )
 {
-		unsigned int i = 0;
-        ctx->a = htole32(a);
-        ctx->b = htole16(b);
-        ctx->c = htole16(c);
-        for (i = 0; i < sizeof(ctx->d); ++i)
-        {
-            (ctx->d)[i] = d[i];
-        }
+  unsigned int i = 0;
+  ctx->a = htole32(a);
+  ctx->b = htole16(b);
+  ctx->c = htole16(c);
+  for (i = 0; i < sizeof(ctx->d); ++i)
+  {
+    (ctx->d)[i] = d[i];
+  }
 }
 
 static void
 init_rpc_data_representation(struct rpc_data_representation *data)
 {
-        data->byte_order     = RPC_BYTE_ORDER_LE;
-		data->char_encoding  = RPC_CHAR_ENCODING_ASCII;
-		data->floating_point = RPC_FLOAT_ENCODING_IEEE;
-		data->padding        = 0x00;
+  data->byte_order     = RPC_BYTE_ORDER_LE;
+  data->char_encoding  = RPC_CHAR_ENCODING_ASCII;
+  data->floating_point = RPC_FLOAT_ENCODING_IEEE;
+  data->padding        = 0x00;
 }
 
 static void
 init_rpc_header(struct rpc_header *hdr)
 {
-		hdr->version_major = 5;
-		hdr->version_minor = 0;
-		hdr->packet_type = 0;
-		hdr->packet_flags = 0;
-		init_rpc_data_representation(&(hdr->data_rep));
-		hdr->frag_length = 0;
-		hdr->auth_length = 0;
-		hdr->call_id = 0;
+  hdr->version_major = 5;
+  hdr->version_minor = 0;
+  hdr->packet_type = 0;
+  hdr->packet_flags = 0;
+  init_rpc_data_representation(&(hdr->data_rep));
+  hdr->frag_length = 0;
+  hdr->auth_length = 0;
+  hdr->call_id = 0;
 }
 
 static void
 init_rpc_bind_request(struct rpc_bind_request *bnd)
 {
-        /* Constant values from ethereal. */
-        init_rpc_header(&(bnd->dceRpcHdr));
-		bnd->max_xmit_frag = 32 * 1024; /* was 4280 */
-		bnd->max_recv_frag = 32 * 1024; /* was 4280 */
-		bnd->assoc_group = 0;
-		bnd->num_context_items = 0;
-		memset(bnd->padding, 0, sizeof(bnd->padding));
+  /* Constant values from ethereal. */
+  init_rpc_header(&(bnd->dceRpcHdr));
+  bnd->max_xmit_frag = 32 * 1024; /* was 4280 */
+  bnd->max_recv_frag = 32 * 1024; /* was 4280 */
+  bnd->assoc_group = 0;
+  bnd->num_context_items = 0;
+  memset(bnd->padding, 0, sizeof(bnd->padding));
 }
 
 void dcerpc_init_context(struct context_item* ctx, ContextType type)
 {
-    union uuid syntax_id;
+  union uuid syntax_id;
 
-    ctx->num_trans_items = htole16(1);
+  ctx->num_trans_items = htole16(1);
 
-    if (type == CONTEXT_SRVSVC) {
-        union uuid srvsvc_id;
+  if (type == CONTEXT_SRVSVC)
+  {
+    union uuid srvsvc_id;
 
-        ctx->context_id = htole16(SRVSVC_CONTEXT_ID);
+    ctx->context_id = htole16(SRVSVC_CONTEXT_ID);
 
-        set_context_uuid(&srvsvc_id.s_id,
-                         SRVSVC_UUID_A,
-                         SRVSVC_UUID_B,
-                         SRVSVC_UUID_C,
-                         SRVSVC_UUID_D);
-        memcpy(&(ctx->interface_uuid), &(srvsvc_id.id), 16);
-        ctx->interface_version_major = htole16(SRVSVC_INTERFACE_VERSION_MAJOR);
-        ctx->interface_version_minor = htole16(SRVSVC_INTERFACE_VERSION_MINOR);
+    set_context_uuid(&srvsvc_id.s_id,
+                     SRVSVC_UUID_A,
+                     SRVSVC_UUID_B,
+                     SRVSVC_UUID_C,
+                     SRVSVC_UUID_D);
+    memcpy(&(ctx->interface_uuid), &(srvsvc_id.id), 16);
+    ctx->interface_version_major = htole16(SRVSVC_INTERFACE_VERSION_MAJOR);
+    ctx->interface_version_minor = htole16(SRVSVC_INTERFACE_VERSION_MINOR);
+  }
+  else if (type == CONTEXT_LSARPC)
+  {
+    union uuid lsarpc_id;
 
-    } else if (type == CONTEXT_LSARPC) {
-        union uuid lsarpc_id;
+    ctx->context_id = htole16(LSARPC_CONTEXT_ID);
 
-        ctx->context_id = htole16(LSARPC_CONTEXT_ID);
+    set_context_uuid(&lsarpc_id.s_id,
+                     LSARPC_UUID_A,
+                     LSARPC_UUID_B,
+                     LSARPC_UUID_C,
+                     LSARPC_UUID_D);
+    memcpy(&(ctx->interface_uuid), &(lsarpc_id.id), 16);
+    ctx->interface_version_major = htole16(LSARPC_INTERFACE_VERSION_MAJOR);
+    ctx->interface_version_minor = htole16(LSARPC_INTERFACE_VERSION_MINOR);
+  }
 
-        set_context_uuid(&lsarpc_id.s_id,
-                         LSARPC_UUID_A,
-                         LSARPC_UUID_B,
-                         LSARPC_UUID_C,
-                         LSARPC_UUID_D);
-        memcpy(&(ctx->interface_uuid), &(lsarpc_id.id), 16);
-        ctx->interface_version_major = htole16(LSARPC_INTERFACE_VERSION_MAJOR);
-        ctx->interface_version_minor = htole16(LSARPC_INTERFACE_VERSION_MINOR);
-
-    }
-
-    set_context_uuid(&syntax_id.s_id,
-                     TRANSFER_SYNTAX_NDR_UUID_A,
-                     TRANSFER_SYNTAX_NDR_UUID_B,
-                     TRANSFER_SYNTAX_NDR_UUID_C,
-                     TRANSFER_SYNTAX_NDR_UUID_D);
-    memcpy(&(ctx->transfer_syntax), &(syntax_id.id), 16);
-    ctx->syntax_version_major = htole16(TRANSFER_SYNTAX_VERSION_MAJOR);
-    ctx->syntax_version_minor = htole16(TRANSFER_SYNTAX_VERSION_MINOR);
+  set_context_uuid(&syntax_id.s_id,
+                   TRANSFER_SYNTAX_NDR_UUID_A,
+                   TRANSFER_SYNTAX_NDR_UUID_B,
+                   TRANSFER_SYNTAX_NDR_UUID_C,
+                   TRANSFER_SYNTAX_NDR_UUID_D);
+  memcpy(&(ctx->transfer_syntax), &(syntax_id.id), 16);
+  ctx->syntax_version_major = htole16(TRANSFER_SYNTAX_VERSION_MAJOR);
+  ctx->syntax_version_minor = htole16(TRANSFER_SYNTAX_VERSION_MINOR);
 }
 
 void dcerpc_create_bind_req(struct rpc_bind_request *bnd, int num_context_items)
 {
-        init_rpc_bind_request(bnd);
-        bnd->dceRpcHdr.packet_type = RPC_PACKET_TYPE_BIND;
-        bnd->dceRpcHdr.packet_flags = RPC_FLAG_FIRST_FRAG | RPC_FLAG_LAST_FRAG;
-        bnd->dceRpcHdr.frag_length = sizeof(struct rpc_bind_request) +
+  init_rpc_bind_request(bnd);
+  bnd->dceRpcHdr.packet_type = RPC_PACKET_TYPE_BIND;
+  bnd->dceRpcHdr.packet_flags = RPC_FLAG_FIRST_FRAG | RPC_FLAG_LAST_FRAG;
+  bnd->dceRpcHdr.frag_length = sizeof(struct rpc_bind_request) +
                                      (num_context_items * sizeof(struct context_item));
-        bnd->dceRpcHdr.call_id = global_call_id++;
-        bnd->num_context_items = num_context_items; /* atleast one context */
+  bnd->dceRpcHdr.call_id = global_call_id++;
+  bnd->num_context_items = num_context_items; /* atleast one context */
 }
 
 int
@@ -149,28 +150,28 @@ dcerpc_get_response_header(uint8_t *buf,
                            uint32_t buf_len,
                            struct rpc_header *hdr)
 {
-        if (buf == NULL|| hdr == NULL) {
-                return -1;
-        }
-        if (buf_len < sizeof(struct rpc_header)) {
-                return -1;
-        }
-        memcpy(hdr, buf, sizeof(struct rpc_header));
-        return 0;
+  if (buf == NULL|| hdr == NULL)
+    return -1;
+
+  if (buf_len < sizeof(struct rpc_header))
+    return -1;
+
+  memcpy(hdr, buf, sizeof(struct rpc_header));
+  return 0;
 }
 
 int
 dcerpc_get_bind_ack_response(uint8_t *buf, uint32_t buf_len,
                              struct rpc_bind_response *rsp)
 {
-        if (buf == NULL|| rsp == NULL) {
-                return -1;
-        }
-        if (buf_len < sizeof(struct rpc_bind_response)) {
-                return -1;
-        }
-        memcpy(rsp, buf, sizeof(struct rpc_bind_response));
-        return 0;
+  if (buf == NULL|| rsp == NULL)
+    return -1;
+
+  if (buf_len < sizeof(struct rpc_bind_response))
+    return -1;
+
+  memcpy(rsp, buf, sizeof(struct rpc_bind_response));
+  return 0;
 }
 
 int
@@ -178,30 +179,35 @@ dcerpc_get_bind_nack_response(uint8_t *buf,
                               uint32_t buf_len,
                               struct rpc_bind_nack_response *rsp)
 {
-        if (buf == NULL|| rsp == NULL) {
-                return -1;
-        }
-        if (buf_len < sizeof(struct rpc_bind_nack_response)) {
-                return -1;
-        }
-        memcpy(rsp, buf, sizeof(struct rpc_bind_nack_response));
-        return 0;
+  if (buf == NULL|| rsp == NULL)
+    return -1;
+
+  if (buf_len < sizeof(struct rpc_bind_nack_response))
+    return -1;
+
+  memcpy(rsp, buf, sizeof(struct rpc_bind_nack_response));
+  return 0;
 }
 
 static void
-dcerpc_init_Operation_Request(struct DceRpcOperationRequest *dceOpReq,
-                              uint16_t opnum)
+dcerpc_init_Operation_Request(struct DceRpcOperationRequest *dceOpReq, uint16_t opnum)
 {
-    init_rpc_header(&(dceOpReq->dceRpcHdr));
-    dceOpReq->alloc_hint = 0;
-    if (opnum == DCE_OP_SHARE_ENUM) {
-        dceOpReq->context_id = 1;
-    } else if (opnum == DCE_OP_CLOSE_POLICY) {
-        dceOpReq->context_id = 0;
-    } else {
-        dceOpReq->context_id = 0;
-    }
-    dceOpReq->opnum = htole16(opnum);
+  init_rpc_header(&(dceOpReq->dceRpcHdr));
+  dceOpReq->alloc_hint = 0;
+
+  if (opnum == DCE_OP_SHARE_ENUM)
+  {
+    dceOpReq->context_id = 1;
+  }
+  else if (opnum == DCE_OP_CLOSE_POLICY)
+  {
+    dceOpReq->context_id = 0;
+  }
+  else
+  {
+    dceOpReq->context_id = 0;
+  }
+  dceOpReq->opnum = htole16(opnum);
 }
 
 int
@@ -209,13 +215,13 @@ dcerpc_create_Operation_Request(struct DceRpcOperationRequest *dceOpReq,
                                 uint16_t opnum,
                                 uint32_t payload_size)
 {
-    dcerpc_init_Operation_Request(dceOpReq, opnum);
-    dceOpReq->dceRpcHdr.packet_type  = RPC_PACKET_TYPE_REQUEST;
-    dceOpReq->dceRpcHdr.packet_flags = RPC_FLAG_FIRST_FRAG | RPC_FLAG_LAST_FRAG;
-    dceOpReq->dceRpcHdr.frag_length  =  sizeof(struct DceRpcOperationRequest) + payload_size;
-    dceOpReq->dceRpcHdr.call_id      =  global_call_id++;
-    dceOpReq->alloc_hint             =  payload_size;/* some add 2 more bytes ?*/
-    return 0;
+  dcerpc_init_Operation_Request(dceOpReq, opnum);
+  dceOpReq->dceRpcHdr.packet_type  = RPC_PACKET_TYPE_REQUEST;
+  dceOpReq->dceRpcHdr.packet_flags = RPC_FLAG_FIRST_FRAG | RPC_FLAG_LAST_FRAG;
+  dceOpReq->dceRpcHdr.frag_length  =  sizeof(struct DceRpcOperationRequest) + payload_size;
+  dceOpReq->dceRpcHdr.call_id      =  global_call_id++;
+  dceOpReq->alloc_hint             =  payload_size;/* some add 2 more bytes ?*/
+  return 0;
 }
 
 int
@@ -264,31 +270,31 @@ dcerpc_parse_Operation_Response(const uint8_t *buffer,
 const char *
 dcerpc_get_reject_reason(uint16_t reason)
 {
-        switch (reason)
-        {
-                case RPC_REASON_NOT_SPECIFIED:
-                        return "Reason not specified";
-                case RPC_REASON_TEMPORARY_CONGESTION:
-                        return "Temporary congestion";
-                case RPC_REASON_LOCAL_LIMIT_EXCEEDED:
-                        return "Local limit exceeded";
-                case RPC_REASON_CALLED_PADDR_UNKNOWN:
-                        return "Called paddr unknown";
-                case RPC_REASON_BAD_PROTOCOL_VERSION:
-                        return "Protocol version not supported";
-                case RPC_REASON_DEFAULT_CTX_UNSUPPORTED:
-                        return "Default context not supported";
-                case RPC_REASON_USER_DATA_UNREADABLE:
-                        return "User data not readable";
-                case RPC_REASON_NO_PSAP_AVAILABLE:
-                        return "No PSAP available";
-                case RPC_REASON_AUTH_TYPE_NOT_RECOGNIZED:
-                        return "Authentication type not recognized";
-                case RPC_REASON_INVALID_CHECKSUM:
-                        return "Invalid checksum";
-                default: break;
-        }
-        return "UNKNOWN Reject Reason";
+  switch (reason)
+  {
+    case RPC_REASON_NOT_SPECIFIED:
+      return "Reason not specified";
+    case RPC_REASON_TEMPORARY_CONGESTION:
+      return "Temporary congestion";
+    case RPC_REASON_LOCAL_LIMIT_EXCEEDED:
+      return "Local limit exceeded";
+    case RPC_REASON_CALLED_PADDR_UNKNOWN:
+      return "Called paddr unknown";
+    case RPC_REASON_BAD_PROTOCOL_VERSION:
+      return "Protocol version not supported";
+    case RPC_REASON_DEFAULT_CTX_UNSUPPORTED:
+      return "Default context not supported";
+    case RPC_REASON_USER_DATA_UNREADABLE:
+      return "User data not readable";
+    case RPC_REASON_NO_PSAP_AVAILABLE:
+      return "No PSAP available";
+    case RPC_REASON_AUTH_TYPE_NOT_RECOGNIZED:
+      return "Authentication type not recognized";
+    case RPC_REASON_INVALID_CHECKSUM:
+      return "Invalid checksum";
+    default: break;
+  }
+  return "UNKNOWN Reject Reason";
 }
 
 /******************************** SRVSVC ********************************/
@@ -378,16 +384,16 @@ srvsvc_init_InfoStruct(uint32_t infolevel, uint32_t id,
                        uint32_t entries, uint32_t arrayId,
                        uint8_t *buffer, uint32_t buf_len)
 {
-        struct InfoStruct *info = NULL;
+  struct InfoStruct *info = NULL;
 
-        info = (struct InfoStruct *)buffer;
+  info = (struct InfoStruct *)buffer;
 
-        info->info_level   = htole32(infolevel);
-        info->switch_value = info->info_level;
-        info->referent_id  = htole32(id);
-        info->num_entries  = htole32(entries);
-        info->array_referent_id = htole32(arrayId);
-        return 0;
+  info->info_level   = htole32(infolevel);
+  info->switch_value = info->info_level;
+  info->referent_id  = htole32(id);
+  info->num_entries  = htole32(entries);
+  info->array_referent_id = htole32(arrayId);
+  return 0;
 }
 
 int
@@ -441,15 +447,14 @@ srvsvc_create_NetrShareEnumRequest(std::string& server_name,
 }
 
 uint32_t
-srvsvc_get_NetrShareEnum_status(const uint8_t *buffer,
-                                const uint32_t buf_len)
+srvsvc_get_NetrShareEnum_status(const uint8_t *buffer, const uint32_t buf_len)
 {
-        uint32_t sts = 0;
+  uint32_t sts = 0;
 
-        uint32_t *pstatus = (uint32_t *) (buffer +(buf_len - 4));
-        sts = le32toh(*pstatus);
+  uint32_t *pstatus = (uint32_t *) (buffer +(buf_len - 4));
+  sts = le32toh(*pstatus);
 
-        return sts;
+  return sts;
 }
 
 static int
@@ -478,290 +483,304 @@ srvsvc_parse_NetrShareEnum_InfoStruct(const uint8_t *buffer,
 
 static int
 srvsvc_parse_NetrShareEnum_buffer(const uint8_t *in_buffer,
-                                  uint32_t in_buffer_len,
-                                  uint32_t buffer_consumed,
+                                  uint32_t       in_buffer_len,
+                                  uint32_t       buffer_consumed,
                                   const uint32_t share_count,
-                                  smb2_shares& shares,
-                                  uint32_t *total_entries,
-                                  uint32_t *resumeHandlePtr,
-                                  uint32_t *resumeHandle)
+                                  smb2_shares&   shares,
+                                  uint32_t      *total_entries,
+                                  uint32_t      *resumeHandlePtr,
+                                  uint32_t      *resumeHandle)
 {
-        const uint8_t *buffer = NULL;
-        uint32_t buffer_offset = 0;
-        const uint8_t *payload = NULL;
-        uint32_t payload_offset = 0;
-        uint32_t i = 0;
+  const uint8_t *buffer = NULL;
+  uint32_t buffer_offset = 0;
+  const uint8_t *payload = NULL;
+  uint32_t payload_offset = 0;
+  uint32_t i = 0;
 
-        shares.share_info_type = 1;
+  shares.share_info_type = 1;
 
-        buffer = in_buffer + buffer_consumed;
-        payload = buffer + (share_count * sizeof (struct ShareInfo1));
+  buffer = in_buffer + buffer_consumed;
+  payload = buffer + (share_count * sizeof (struct ShareInfo1));
 
-        for (i = 0; i < share_count; i++) {
-                struct ShareInfo1 share_info, *infoptr = NULL;
-                struct stringValue share_name, *name_ptr = NULL;
-                struct stringValue share_remark, *remark_ptr = NULL;
-                char *shi_name = NULL;
-                char *shi_remark = NULL;
-                uint32_t padlen = 0;
-                smb2_shareinfo shi01;
+  for (i = 0; i < share_count; i++)
+  {
+    struct ShareInfo1 share_info, *infoptr = NULL;
+    struct stringValue share_name, *name_ptr = NULL;
+    struct stringValue share_remark, *remark_ptr = NULL;
+    char *shi_name = NULL;
+    char *shi_remark = NULL;
+    uint32_t padlen = 0;
+    smb2_shareinfo shi01;
 
-                infoptr = (struct ShareInfo1 *) (buffer + buffer_offset);
-                share_info.name_referent_id   = le32toh(infoptr->name_referent_id);
-                share_info.type               = le32toh(infoptr->type);
-                share_info.remark_referent_id = le32toh(infoptr->remark_referent_id);
-                buffer_offset += sizeof(struct ShareInfo1);
+    infoptr = (struct ShareInfo1 *) (buffer + buffer_offset);
+    share_info.name_referent_id   = le32toh(infoptr->name_referent_id);
+    share_info.type               = le32toh(infoptr->type);
+    share_info.remark_referent_id = le32toh(infoptr->remark_referent_id);
+    buffer_offset += sizeof(struct ShareInfo1);
 
-                /* the payload buffer is 4 byte multiple.
-                 * while packing each element it is padded if not multiple of 4 byte.
-                 * the buffer size count starts from the payload.
-                 */
-                padlen = 0;
-                if ((payload_offset & 0x03) != 0) {
-                        padlen = 4 - (payload_offset & 0x03);
-                        payload_offset += padlen;
-                }
+    /* the payload buffer is 4 byte multiple.
+     * while packing each element it is padded if not multiple of 4 byte.
+     * the buffer size count starts from the payload.
+     */
+    padlen = 0;
+    if ((payload_offset & 0x03) != 0)
+    {
+      padlen = 4 - (payload_offset & 0x03);
+      payload_offset += padlen;
+    }
 
-                name_ptr = (struct stringValue *) (payload + payload_offset);
-                share_name.max_length = le32toh(name_ptr->max_length);
-                share_name.offset     = le32toh(name_ptr->offset);
-                share_name.length     = le32toh(name_ptr->length);
-                payload_offset += sizeof(struct stringValue);
+    name_ptr = (struct stringValue *) (payload + payload_offset);
+    share_name.max_length = le32toh(name_ptr->max_length);
+    share_name.offset     = le32toh(name_ptr->offset);
+    share_name.length     = le32toh(name_ptr->length);
+    payload_offset += sizeof(struct stringValue);
 
-                shi_name = ucs2_to_utf8((uint16_t *)(payload+payload_offset),
-                                        share_name.length);
+    shi_name = ucs2_to_utf8((uint16_t *)(payload+payload_offset), share_name.length);
 
-                payload_offset += (2 * share_name.length);
+    payload_offset += (2 * share_name.length);
 
-                padlen = 0;
-                if ((payload_offset & 0x03) != 0) {
-                        padlen = 4 - (payload_offset & 0x03);
-                        payload_offset += padlen;
-                }
+    padlen = 0;
+    if ((payload_offset & 0x03) != 0)
+    {
+      padlen = 4 - (payload_offset & 0x03);
+      payload_offset += padlen;
+    }
 
-                remark_ptr = (struct stringValue *) (payload + payload_offset);
-                share_remark.max_length = le32toh(remark_ptr->max_length);
-                share_remark.offset     = le32toh(remark_ptr->offset);
-                share_remark.length     = le32toh(remark_ptr->length);
-                payload_offset += sizeof(struct stringValue);
+    remark_ptr = (struct stringValue *) (payload + payload_offset);
+    share_remark.max_length = le32toh(remark_ptr->max_length);
+    share_remark.offset     = le32toh(remark_ptr->offset);
+    share_remark.length     = le32toh(remark_ptr->length);
+    payload_offset += sizeof(struct stringValue);
 
-                if (share_remark.length > 1) {
-                        shi_remark = ucs2_to_utf8((uint16_t *)(payload+payload_offset),
-                                                  share_remark.length);
-                }
-                payload_offset += (2 * share_remark.length);
+    if (share_remark.length > 1)
+    {
+      shi_remark = ucs2_to_utf8((uint16_t *)(payload+payload_offset), share_remark.length);
+    }
+    payload_offset += (2 * share_remark.length);
 
-                /* Fill the details */
-                shi01.share_type      = share_info.type;
-                if (shi_name)
-                {
-                  shi01.name            = std::string(shi_name);
-                  free(shi_name);
-                }
-                if (shi_remark)
-                {
-                  shi01.remark          = std::string(shi_remark);
-                  free(shi_remark);
-                }
-                shares.sharelist.push_back(shi01);
-        }
+    /* Fill the details */
+    shi01.share_type      = share_info.type;
+    if (shi_name)
+    {
+      shi01.name            = std::string(shi_name);
+      free(shi_name);
+    }
+    if (shi_remark)
+    {
+      shi01.remark          = std::string(shi_remark);
+      free(shi_remark);
+    }
+    shares.sharelist.push_back(shi01);
+  }
 
-        buffer_offset += buffer_consumed + payload_offset;
-        if ((buffer_offset & 0x03) != 0) {
-                uint32_t padlen = 4 - (buffer_offset & 0x03);
-                buffer_offset += padlen;
-        }
+  buffer_offset += buffer_consumed + payload_offset;
+  if ((buffer_offset & 0x03) != 0)
+  {
+    uint32_t padlen = 4 - (buffer_offset & 0x03);
+    buffer_offset += padlen;
+  }
 
-        *total_entries = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
-        buffer_offset += sizeof(uint32_t);
+  *total_entries = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
+  buffer_offset += sizeof(uint32_t);
 
-        if ( (in_buffer_len - buffer_offset) == 8 ) {
-                *resumeHandlePtr  = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
-                buffer_offset += sizeof(uint32_t);
-                *resumeHandle  = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
-                buffer_offset += sizeof(uint32_t);
-        } else {
-                /* pointer to NULL - 4 bytes */
-                *resumeHandlePtr  = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
-                buffer_offset += sizeof(uint32_t);
-                *resumeHandle  = 0;
-        }
+  if ( (in_buffer_len - buffer_offset) == 8 )
+  {
+    *resumeHandlePtr  = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
+    buffer_offset += sizeof(uint32_t);
+    *resumeHandle  = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
+    buffer_offset += sizeof(uint32_t);
+  }
+  else
+  {
+    /* pointer to NULL - 4 bytes */
+    *resumeHandlePtr  = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
+    buffer_offset += sizeof(uint32_t);
+    *resumeHandle  = 0;
+  }
 
-        return 0;
+  return 0;
 }
 
 static int
 srvsvc_parse_NetrShareEnum_buffer2(const uint8_t *in_buffer,
-                                   uint32_t in_buffer_len,
-                                   uint32_t buffer_consumed,
+                                   uint32_t       in_buffer_len,
+                                   uint32_t       buffer_consumed,
                                    const uint32_t share_count,
-                                   smb2_shares& shares,
-                                   uint32_t *total_entries,
-                                   uint32_t *resumeHandlePtr,
-                                   uint32_t *resumeHandle)
+                                   smb2_shares&   shares,
+                                   uint32_t      *total_entries,
+                                   uint32_t      *resumeHandlePtr,
+                                   uint32_t      *resumeHandle)
 {
-        const uint8_t *buffer = NULL;
-        uint32_t buffer_offset = 0;
-        const uint8_t *payload = NULL;
-        uint32_t payload_offset = 0;
-        uint32_t i = 0;
+  const uint8_t *buffer = NULL;
+  uint32_t buffer_offset = 0;
+  const uint8_t *payload = NULL;
+  uint32_t payload_offset = 0;
+  uint32_t i = 0;
 
-        shares.share_info_type = 2;
+  shares.share_info_type = 2;
 
-        buffer = in_buffer + buffer_consumed;
-        payload = buffer + (share_count * sizeof (struct ShareInfo2));
+  buffer = in_buffer + buffer_consumed;
+  payload = buffer + (share_count * sizeof (struct ShareInfo2));
 
-        for (i = 0; i < share_count; i++) {
-                struct ShareInfo2 share_info, *infoptr = NULL;
-                struct stringValue share_name, *name_ptr = NULL;
-                struct stringValue share_remark, *remark_ptr = NULL;
-                struct stringValue share_path, *path_ptr = NULL;
-                struct stringValue share_passwd, *passwd_ptr = NULL;
-                char *shi_name = NULL;
-                char *shi_remark = NULL;
-                char *shi_path = NULL;
-                char *shi_passwd = NULL;
-                uint32_t padlen = 0;
-                smb2_shareinfo shi02;
+  for (i = 0; i < share_count; i++)
+  {
+    struct ShareInfo2 share_info, *infoptr = NULL;
+    struct stringValue share_name, *name_ptr = NULL;
+    struct stringValue share_remark, *remark_ptr = NULL;
+    struct stringValue share_path, *path_ptr = NULL;
+    struct stringValue share_passwd, *passwd_ptr = NULL;
+    char *shi_name = NULL;
+    char *shi_remark = NULL;
+    char *shi_path = NULL;
+    char *shi_passwd = NULL;
+    uint32_t padlen = 0;
+    smb2_shareinfo shi02;
 
-                infoptr = (struct ShareInfo2 *) (buffer + buffer_offset);
-                share_info.name_referent_id   = le32toh(infoptr->name_referent_id);
-                share_info.type               = le32toh(infoptr->type);
-                share_info.remark_referent_id = le32toh(infoptr->remark_referent_id);
-                share_info.permissions        = le32toh(infoptr->permissions);
-                share_info.max_uses           = le32toh(infoptr->max_uses);
-                share_info.current_uses       = le32toh(infoptr->current_uses);
-                share_info.path_referent_id   = le32toh(infoptr->path_referent_id);
-                share_info.passwd_referent_id = le32toh(infoptr->passwd_referent_id);
-                buffer_offset += sizeof(struct ShareInfo2);
+    infoptr = (struct ShareInfo2 *) (buffer + buffer_offset);
+    share_info.name_referent_id   = le32toh(infoptr->name_referent_id);
+    share_info.type               = le32toh(infoptr->type);
+    share_info.remark_referent_id = le32toh(infoptr->remark_referent_id);
+    share_info.permissions        = le32toh(infoptr->permissions);
+    share_info.max_uses           = le32toh(infoptr->max_uses);
+    share_info.current_uses       = le32toh(infoptr->current_uses);
+    share_info.path_referent_id   = le32toh(infoptr->path_referent_id);
+    share_info.passwd_referent_id = le32toh(infoptr->passwd_referent_id);
+    buffer_offset += sizeof(struct ShareInfo2);
 
-                /* the payload buffer is 4 byte multiple.
-                 * while packing each element it is padded if not multiple of 4 byte.
-                 * the buffer size count starts from the payload.
-                 */
-                padlen = 0;
-                if ((payload_offset & 0x03) != 0) {
-                        padlen = 4 - (payload_offset & 0x03);
-                        payload_offset += padlen;
-                }
+    /* the payload buffer is 4 byte multiple.
+     * while packing each element it is padded if not multiple of 4 byte.
+     * the buffer size count starts from the payload.
+     */
+    padlen = 0;
+    if ((payload_offset & 0x03) != 0)
+    {
+      padlen = 4 - (payload_offset & 0x03);
+      payload_offset += padlen;
+    }
 
-                name_ptr = (struct stringValue *) (payload + payload_offset);
-                share_name.max_length = le32toh(name_ptr->max_length);
-                share_name.offset     = le32toh(name_ptr->offset);
-                share_name.length     = le32toh(name_ptr->length);
-                payload_offset += sizeof(struct stringValue);
+    name_ptr = (struct stringValue *) (payload + payload_offset);
+    share_name.max_length = le32toh(name_ptr->max_length);
+    share_name.offset     = le32toh(name_ptr->offset);
+    share_name.length     = le32toh(name_ptr->length);
+    payload_offset += sizeof(struct stringValue);
 
-                shi_name = ucs2_to_utf8((uint16_t *)(payload+payload_offset),
-                                        share_name.length);
+    shi_name = ucs2_to_utf8((uint16_t *)(payload+payload_offset), share_name.length);
 
-                payload_offset += (2 * share_name.length);
+    payload_offset += (2 * share_name.length);
 
-                padlen = 0;
-                if ((payload_offset & 0x03) != 0) {
-                        padlen = 4 - (payload_offset & 0x03);
-                        payload_offset += padlen;
-                }
+    padlen = 0;
+    if ((payload_offset & 0x03) != 0)
+    {
+      padlen = 4 - (payload_offset & 0x03);
+      payload_offset += padlen;
+    }
 
-                remark_ptr = (struct stringValue *) (payload + payload_offset);
-                share_remark.max_length = le32toh(remark_ptr->max_length);
-                share_remark.offset     = le32toh(remark_ptr->offset);
-                share_remark.length     = le32toh(remark_ptr->length);
-                payload_offset += sizeof(struct stringValue);
+    remark_ptr = (struct stringValue *) (payload + payload_offset);
+    share_remark.max_length = le32toh(remark_ptr->max_length);
+    share_remark.offset     = le32toh(remark_ptr->offset);
+    share_remark.length     = le32toh(remark_ptr->length);
+    payload_offset += sizeof(struct stringValue);
 
-                if (share_remark.length > 1) {
-                        shi_remark = ucs2_to_utf8((uint16_t *)(payload+payload_offset),
-                                                  share_remark.length);
-                }
-                payload_offset += (2 * share_remark.length);
+    if (share_remark.length > 1)
+    {
+      shi_remark = ucs2_to_utf8((uint16_t *)(payload+payload_offset), share_remark.length);
+    }
+    payload_offset += (2 * share_remark.length);
 
-                padlen = 0;
-                if ((payload_offset & 0x03) != 0) {
-                        padlen = 4 - (payload_offset & 0x03);
-                        payload_offset += padlen;
-                }
+    padlen = 0;
+    if ((payload_offset & 0x03) != 0)
+    {
+      padlen = 4 - (payload_offset & 0x03);
+      payload_offset += padlen;
+    }
 
-                path_ptr = (struct stringValue *) (payload + payload_offset);
-                share_path.max_length = le32toh(path_ptr->max_length);
-                share_path.offset     = le32toh(path_ptr->offset);
-                share_path.length     = le32toh(path_ptr->length);
-                payload_offset += sizeof(struct stringValue);
+    path_ptr = (struct stringValue *) (payload + payload_offset);
+    share_path.max_length = le32toh(path_ptr->max_length);
+    share_path.offset     = le32toh(path_ptr->offset);
+    share_path.length     = le32toh(path_ptr->length);
+    payload_offset += sizeof(struct stringValue);
 
-                if (share_path.length > 1) {
-                        shi_path = ucs2_to_utf8((uint16_t *)(payload+payload_offset),
-                                                share_path.length);
-                }
-                payload_offset += (2 * share_path.length);
+    if (share_path.length > 1)
+    {
+      shi_path = ucs2_to_utf8((uint16_t *)(payload+payload_offset), share_path.length);
+    }
+    payload_offset += (2 * share_path.length);
 
-                padlen = 0;
-                if ((payload_offset & 0x03) != 0) {
-                        padlen = 4 - (payload_offset & 0x03);
-                        payload_offset += padlen;
-                }
+    padlen = 0;
+    if ((payload_offset & 0x03) != 0)
+    {
+      padlen = 4 - (payload_offset & 0x03);
+      payload_offset += padlen;
+    }
 
-                if (share_info.passwd_referent_id != 0) {
-                        passwd_ptr = (struct stringValue *) (payload + payload_offset);
-                        share_passwd.max_length = le32toh(passwd_ptr->max_length);
-                        share_passwd.offset     = le32toh(passwd_ptr->offset);
-                        share_passwd.length     = le32toh(passwd_ptr->length);
-                        payload_offset += sizeof(struct stringValue);
+    if (share_info.passwd_referent_id != 0)
+    {
+      passwd_ptr = (struct stringValue *) (payload + payload_offset);
+      share_passwd.max_length = le32toh(passwd_ptr->max_length);
+      share_passwd.offset     = le32toh(passwd_ptr->offset);
+      share_passwd.length     = le32toh(passwd_ptr->length);
+      payload_offset += sizeof(struct stringValue);
 
-                        if (share_passwd.length > 1) {
-                                shi_passwd = ucs2_to_utf8((uint16_t *)(payload+payload_offset),
-                                                          share_passwd.length);
-                        }
-                        payload_offset += (2 * share_passwd.length);
-                }
+      if (share_passwd.length > 1)
+      {
+        shi_passwd = ucs2_to_utf8((uint16_t *)(payload+payload_offset), share_passwd.length);
+      }
+      payload_offset += (2 * share_passwd.length);
+    }
 
-                /* Fill the details */
-                shi02.share_type      = share_info.type;
-                if (shi_name)
-                {
-                  shi02.name            = std::string(shi_name);
-                  free(shi_name);
-                }
-                if (shi_remark)
-                {
-                  shi02.remark          = std::string(shi_remark);
-                  free(shi_remark);
-                }
-                shi02.permissions     = share_info.permissions;
-                shi02.max_uses        = share_info.max_uses;
-                shi02.current_uses    = share_info.current_uses;
-                if (shi_path)
-                {
-                  shi02.path            = std::string(shi_path);
-                  free(shi_path);
-                }
-                if (shi_passwd)
-                {
-                  shi02.password        = std::string(shi_passwd);
-                  free(shi_passwd);
-                }
-                shares.sharelist.push_back(shi02);
-        }
+    /* Fill the details */
+    shi02.share_type      = share_info.type;
+    if (shi_name)
+    {
+      shi02.name            = std::string(shi_name);
+      free(shi_name);
+    }
+    if (shi_remark)
+    {
+      shi02.remark          = std::string(shi_remark);
+      free(shi_remark);
+    }
+    shi02.permissions     = share_info.permissions;
+    shi02.max_uses        = share_info.max_uses;
+    shi02.current_uses    = share_info.current_uses;
+    if (shi_path)
+    {
+      shi02.path            = std::string(shi_path);
+      free(shi_path);
+    }
+    if (shi_passwd)
+    {
+      shi02.password        = std::string(shi_passwd);
+      free(shi_passwd);
+    }
+    shares.sharelist.push_back(shi02);
+  }
 
-        buffer_offset += buffer_consumed + payload_offset;
-        if ((buffer_offset & 0x03) != 0) {
+  buffer_offset += buffer_consumed + payload_offset;
+  if ((buffer_offset & 0x03) != 0) {
                 uint32_t padlen = 4 - (buffer_offset & 0x03);
                 buffer_offset += padlen;
-        }
+  }
 
-        *total_entries = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
-        buffer_offset += sizeof(uint32_t);
+  *total_entries = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
+  buffer_offset += sizeof(uint32_t);
 
-        if ( (in_buffer_len - buffer_offset) == 8 ) {
-                *resumeHandlePtr  = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
-                buffer_offset += sizeof(uint32_t);
-                *resumeHandle  = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
-                buffer_offset += sizeof(uint32_t);
-        } else {
-                /* pointer to NULL - 4 bytes */
-                *resumeHandlePtr  = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
-                buffer_offset += sizeof(uint32_t);
-                *resumeHandle  = 0;
-        }
+  if ( (in_buffer_len - buffer_offset) == 8 )
+  {
+    *resumeHandlePtr  = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
+    buffer_offset += sizeof(uint32_t);
+    *resumeHandle  = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
+    buffer_offset += sizeof(uint32_t);
+  }
+  else
+  {
+    /* pointer to NULL - 4 bytes */
+    *resumeHandlePtr  = le32toh(*(uint32_t *)(in_buffer+buffer_offset));
+    buffer_offset += sizeof(uint32_t);
+    *resumeHandle  = 0;
+  }
 
-        return 0;
+  return 0;
 }
 
 int
@@ -872,55 +891,53 @@ lsarpc_create_OpenPolicy2Req(std::string& server_name,
 }
 
 int
-lsarpc_parse_OpenPolicy2Res(uint8_t *buffer,
-                            uint32_t bufLen,
+lsarpc_parse_OpenPolicy2Res(uint8_t      *buffer,
+                            uint32_t      bufLen,
                             PolicyHandle *handle,
-                            uint32_t *status)
+                            uint32_t     *status)
 {
-    uint32_t *stsptr = NULL;
-    PolicyHandle *inhandle = NULL;
+  uint32_t *stsptr = NULL;
+  PolicyHandle *inhandle = NULL;
 
-    stsptr = (uint32_t*)(buffer+(bufLen-4));
-    *status = le32toh(*stsptr);
-    if(*status) {
-        return -1;
-    }
+  stsptr = (uint32_t*)(buffer+(bufLen-4));
+  *status = le32toh(*stsptr);
+  if(*status)
+    return -1;
 
-    inhandle = (PolicyHandle *)buffer;
-    handle->ContextType = le32toh(inhandle->ContextType);
-    handle->ContextUuid.s_id.a = le32toh(inhandle->ContextUuid.s_id.a);
-    handle->ContextUuid.s_id.b = le16toh(inhandle->ContextUuid.s_id.b);
-    handle->ContextUuid.s_id.c = le16toh(inhandle->ContextUuid.s_id.c);
-    memcpy(handle->ContextUuid.s_id.d, inhandle->ContextUuid.s_id.d, 8);
+  inhandle = (PolicyHandle *)buffer;
+  handle->ContextType = le32toh(inhandle->ContextType);
+  handle->ContextUuid.s_id.a = le32toh(inhandle->ContextUuid.s_id.a);
+  handle->ContextUuid.s_id.b = le16toh(inhandle->ContextUuid.s_id.b);
+  handle->ContextUuid.s_id.c = le16toh(inhandle->ContextUuid.s_id.c);
+  memcpy(handle->ContextUuid.s_id.d, inhandle->ContextUuid.s_id.d, 8);
 
-    return 0;
+  return 0;
 }
 
 
 int
 lsarpc_create_ClosePolicy2eq(PolicyHandle *handle,
-                             uint8_t    *buffer,
-                             uint32_t    buffer_len,
-                             uint32_t   *used)
+                             uint8_t      *buffer,
+                             uint32_t      buffer_len,
+                             uint32_t     *used)
 {
-    PolicyHandle *outHandle = (PolicyHandle*)buffer;
-    union uuid policyHandle;
+  PolicyHandle *outHandle = (PolicyHandle*)buffer;
+  union uuid policyHandle;
 
-    if (buffer_len < sizeof(PolicyHandle)) {
-        return -1;
-    }
+  if (buffer_len < sizeof(PolicyHandle))
+    return -1;
 
-    set_context_uuid(&policyHandle.s_id,
-                     handle->ContextUuid.s_id.a,
-                     handle->ContextUuid.s_id.b,
-                     handle->ContextUuid.s_id.c,
-                     handle->ContextUuid.s_id.d);
+  set_context_uuid(&policyHandle.s_id,
+                   handle->ContextUuid.s_id.a,
+                   handle->ContextUuid.s_id.b,
+                   handle->ContextUuid.s_id.c,
+                   handle->ContextUuid.s_id.d);
 
-    outHandle->ContextType = htole32(handle->ContextType);
-    memcpy(outHandle->ContextUuid.id, policyHandle.id, 16);
-    *used = sizeof(PolicyHandle);
+  outHandle->ContextType = htole32(handle->ContextType);
+  memcpy(outHandle->ContextUuid.id, policyHandle.id, 16);
+  *used = sizeof(PolicyHandle);
 
-    return 0;
+  return 0;
 }
 
 /*
@@ -1030,16 +1047,15 @@ lsarpc_create_LookUpNamesReq(PolicyHandle *handle,
 }
 
 uint32_t
-lsarpc_get_LookupNames_status(uint8_t             *buffer,
-                              uint32_t             bufLen)
+lsarpc_get_LookupNames_status(uint8_t *buffer, uint32_t bufLen)
 {
-    uint32_t *stsptr = NULL;
-    uint32_t status = 0;
+  uint32_t *stsptr = NULL;
+  uint32_t status = 0;
 
-    stsptr = (uint32_t*)(buffer+(bufLen-4));
-    status = le32toh(*stsptr);
+  stsptr = (uint32_t*)(buffer+(bufLen-4));
+  status = le32toh(*stsptr);
 
-    return status;
+  return status;
 }
 
 int
