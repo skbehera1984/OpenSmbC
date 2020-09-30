@@ -360,7 +360,7 @@ int Smb2Pdu::smb2_process_error_fixed(Smb2ContextPtr smb2)
   rep = (struct smb2_error_reply*)malloc(sizeof(*rep));
   if (rep == NULL)
   {
-    smb2->smb2_set_error("Failed to allocate error reply");
+    appData->setErrorMsg("Failed to allocate error reply");
     return -1;
   }
   this->payload = rep;
@@ -368,7 +368,9 @@ int Smb2Pdu::smb2_process_error_fixed(Smb2ContextPtr smb2)
   iov.smb2_get_uint16(0, &struct_size);
   if (struct_size != SMB2_ERROR_REPLY_SIZE || (struct_size & 0xfffe) != iov.len)
   {
-    smb2->smb2_set_error("Unexpected size of Error reply. Expected %d, got %d", SMB2_ERROR_REPLY_SIZE, (int)iov.len);
+    string err = stringf("Unexpected size of Error reply. Expected %d, got %d",
+                         SMB2_ERROR_REPLY_SIZE, (int)iov.len);
+    appData->setErrorMsg(err);
     return -1;
   }
 
