@@ -335,7 +335,8 @@ read_more_data:
       ssize_t varSize = pdu->smb2ReplyProcessFixed(smb2);
       if (varSize < 0)
       {
-        error = FUNC + stringf("Failed to parse fixed part of command payload. %s", smb2->smb2_get_error());
+        // make use of app data to get error msg
+        error = FUNC + "Failed to parse fixed part of response - "+pdu->appData->getErrorMsg();
         return -1;
       }
 
@@ -375,7 +376,7 @@ read_more_data:
 
       if (pdu->smb2ReplyProcessVariable(smb2) < 0)
       {
-        error = FUNC + stringf("Failed to parse variable part. %s", smb2->smb2_get_error());
+        error = FUNC + "Failed to parse variable part of response - " +  pdu->appData->getErrorMsg();
         return -1;
       }
 

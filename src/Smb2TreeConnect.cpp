@@ -87,8 +87,9 @@ Smb2TreeConnect::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   uint16_t struct_size;
 
   rep = (struct smb2_tree_connect_reply *)malloc(sizeof(*rep));
-  if (rep == NULL) {
-    smb2->smb2_set_error("Failed to allocate tcon reply");
+  if (rep == NULL)
+  {
+    appData->setErrorMsg("Failed to allocate tcon reply");
     return -1;
   }
   this->payload = rep;
@@ -96,7 +97,9 @@ Smb2TreeConnect::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   iov.smb2_get_uint16(0, &struct_size);
   if (struct_size != SMB2_TREE_CONNECT_REPLY_SIZE || (struct_size & 0xfffe) != iov.len)
   {
-    smb2->smb2_set_error("Unexpected size of Negotiate reply. Expected %d, got %d", SMB2_TREE_CONNECT_REPLY_SIZE, (int)iov.len);
+    string err = stringf("Unexpected size of Negotiate reply. Expected %d, got %d",
+                         SMB2_TREE_CONNECT_REPLY_SIZE, (int)iov.len);
+    appData->setErrorMsg(err);
     return -1;
   }
 

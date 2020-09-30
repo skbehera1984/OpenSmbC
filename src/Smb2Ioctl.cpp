@@ -107,8 +107,9 @@ Smb2Ioctl::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   uint16_t struct_size;
 
   rep = (struct smb2_ioctl_reply *)malloc(sizeof(*rep));
-  if (rep == NULL) {
-    smb2->smb2_set_error("Failed to allocate buffer for ioctl response");
+  if (rep == NULL)
+  {
+    appData->setErrorMsg("Failed to allocate buffer for ioctl response");
     return -1;
   }
   this->payload = rep;
@@ -116,7 +117,9 @@ Smb2Ioctl::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   iov.smb2_get_uint16(0, &struct_size);
   if (struct_size != SMB2_IOCTL_REPLY_SIZE || (struct_size & 0xfffe) != iov.len)
   {
-    smb2->smb2_set_error("Unexpected size of IOCTL reply. Expected %d, got %d", SMB2_IOCTL_REPLY_SIZE, (int)iov.len);
+    string err = stringf("Unexpected size of IOCTL reply. Expected %d, got %d",
+                         SMB2_IOCTL_REPLY_SIZE, (int)iov.len);
+    appData->setErrorMsg(err);
     return -1;
   }
 
@@ -132,12 +135,12 @@ Smb2Ioctl::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   iov.smb2_get_uint32(44, &rep->reserved2);
 
   if (rep->output_count == 0) {
-    smb2->smb2_set_error("No output buffer in Ioctl response");
+    appData->setErrorMsg("No output buffer in Ioctl response");
     return -1;
   }
   if (rep->output_offset < SMB2_HEADER_SIZE + (SMB2_IOCTL_REPLY_SIZE & 0xfffe))
   {
-    smb2->smb2_set_error("Output buffer overlaps with Ioctl reply header");
+    appData->setErrorMsg("Output buffer overlaps with Ioctl reply header");
     return -1;
   }
 

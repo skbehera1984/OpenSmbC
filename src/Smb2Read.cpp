@@ -107,16 +107,20 @@ Smb2Read::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   uint16_t struct_size;
 
   rep = (struct smb2_read_reply *)malloc(sizeof(*rep));
-  if (rep == NULL) {
-    smb2->smb2_set_error("Failed to allocate read reply");
+  if (rep == NULL)
+  {
+    appData->setErrorMsg("Failed to allocate read reply");
     return -1;
   }
   rep->readData = NULL;
   this->payload = rep;
 
   iov.smb2_get_uint16(0, &struct_size);
-  if (struct_size > SMB2_READ_REPLY_SIZE) {
-    smb2->smb2_set_error("Unexpected size of Read reply. Expected %d, got %d", SMB2_READ_REPLY_SIZE, (int)iov.len);
+  if (struct_size > SMB2_READ_REPLY_SIZE)
+  {
+    string err = stringf("Unexpected size of Read reply. Expected %d, got %d",
+                         SMB2_READ_REPLY_SIZE, (int)iov.len);
+    appData->setErrorMsg(err);
     return -1;
   }
 
@@ -128,8 +132,11 @@ Smb2Read::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
     return 0;
   }
 
-  if (rep->data_offset != SMB2_HEADER_SIZE + 16) {
-    smb2->smb2_set_error("Unexpected data offset in Read reply. Expected %d, got %d", 16, rep->data_offset);
+  if (rep->data_offset != SMB2_HEADER_SIZE + 16)
+  {
+    string err = stringf("Unexpected data offset in Read reply. Expected %d, got %d",
+                         16, rep->data_offset);
+    appData->setErrorMsg(err);
     return -1;
   }
 

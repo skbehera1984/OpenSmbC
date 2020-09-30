@@ -76,15 +76,19 @@ Smb2Close::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   uint16_t struct_size;
 
   rep = (struct smb2_close_reply*)malloc(sizeof(*rep));
-  if (rep == NULL) {
-    smb2->smb2_set_error("Failed to allocate close reply");
+  if (rep == NULL)
+  {
+    appData->setErrorMsg("Failed to allocate close reply");
     return -1;
   }
   this->payload = rep;
 
   iov.smb2_get_uint16(0, &struct_size);
-  if (struct_size != SMB2_CLOSE_REPLY_SIZE || (struct_size & 0xfffe) != iov.len) {
-    smb2->smb2_set_error("Unexpected size of Close reply. Expected %d, got %d", SMB2_CLOSE_REPLY_SIZE, (int)iov.len);
+  if (struct_size != SMB2_CLOSE_REPLY_SIZE || (struct_size & 0xfffe) != iov.len)
+  {
+    string err = stringf("Unexpected size of Close reply. Expected %d, got %d",
+                         SMB2_CLOSE_REPLY_SIZE, (int)iov.len);
+    appData->setErrorMsg(err);
     return -1;
   }
 

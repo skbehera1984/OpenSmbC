@@ -112,8 +112,9 @@ Smb2SessionSetup::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   uint16_t struct_size;
 
   rep = (struct smb2_session_setup_reply *)malloc(sizeof(*rep));
-  if (rep == NULL) {
-    smb2->smb2_set_error("Failed to allocate session setup reply");
+  if (rep == NULL)
+  {
+    appData->setErrorMsg("Failed to allocate session setup reply");
     return -1;
   }
   this->payload = rep;
@@ -121,7 +122,9 @@ Smb2SessionSetup::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   iov.smb2_get_uint16(0, &struct_size);
   if (struct_size != SMB2_SESSION_SETUP_REPLY_SIZE || (struct_size & 0xfffe) != iov.len)
   {
-    smb2->smb2_set_error("Unexpected size of Session Setup reply. Expected %d, got %d", SMB2_SESSION_SETUP_REPLY_SIZE, (int)iov.len);
+    string err = stringf("Unexpected size of Session Setup reply. Expected %d, got %d",
+                         SMB2_SESSION_SETUP_REPLY_SIZE, (int)iov.len);
+    appData->setErrorMsg(err);
     return -1;
   }
 
@@ -137,7 +140,7 @@ Smb2SessionSetup::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   }
   if (rep->security_buffer_offset < SMB2_HEADER_SIZE + (SMB2_SESSION_SETUP_REPLY_SIZE & 0xfffe))
   {
-    smb2->smb2_set_error("Securty buffer overlaps with Session Setup reply header");
+    appData->setErrorMsg("Securty buffer overlaps with Session Setup reply header");
     return -1;
   }
 

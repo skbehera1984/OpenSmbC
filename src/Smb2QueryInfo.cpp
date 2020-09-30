@@ -95,8 +95,9 @@ Smb2QueryInfo::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   uint16_t struct_size;
 
   rep = (struct smb2_query_info_reply *)malloc(sizeof(*rep));
-  if (rep == NULL) {
-    smb2->smb2_set_error("Failed to allocate query info reply");
+  if (rep == NULL)
+  {
+    appData->setErrorMsg("Failed to allocate query info reply");
     return -1;
   }
   this->payload = rep;
@@ -104,20 +105,23 @@ Smb2QueryInfo::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   iov.smb2_get_uint16(0, &struct_size);
   if (struct_size != SMB2_QUERY_INFO_REPLY_SIZE || (struct_size & 0xfffe) != iov.len)
   {
-    smb2->smb2_set_error("Unexpected size of Query Info reply. Expected %d, got %d", SMB2_QUERY_INFO_REPLY_SIZE, (int)iov.len);
+    string err = stringf("Unexpected size of Query Info reply. Expected %d, got %d",
+                         SMB2_QUERY_INFO_REPLY_SIZE, (int)iov.len);
+    appData->setErrorMsg(err);
     return -1;
   }
 
   iov.smb2_get_uint16(2, &rep->output_buffer_offset);
   iov.smb2_get_uint32(4, &rep->output_buffer_length);
 
-  if (rep->output_buffer_length == 0) {
-    smb2->smb2_set_error("No output buffer in Query Info response");
+  if (rep->output_buffer_length == 0)
+  {
+    appData->setErrorMsg("No output buffer in Query Info response");
     return -1;
   }
   if (rep->output_buffer_offset < SMB2_HEADER_SIZE + (SMB2_QUERY_INFO_REPLY_SIZE & 0xfffe))
   {
-    smb2->smb2_set_error("Output buffer overlaps with Query Info reply header");
+    appData->setErrorMsg("Output buffer overlaps with Query Info reply header");
     return -1;
   }
 
@@ -152,7 +156,7 @@ Smb2QueryInfo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
           ptr = malloc(sizeof(struct smb2_file_basic_info));
           if (smb2_decode_file_basic_info((struct smb2_file_basic_info *)ptr, &vec))
           {
-            smb2->smb2_set_error("could not decode file basic info. %s", smb2->smb2_get_error());
+            appData->setErrorMsg("could not decode file basic info");
             return -1;
           }
         break;
@@ -160,7 +164,7 @@ Smb2QueryInfo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
           ptr = malloc(sizeof(struct smb2_file_standard_info));
           if (smb2_decode_file_standard_info((struct smb2_file_standard_info *)ptr, &vec))
           {
-            smb2->smb2_set_error("could not decode file standard info. %s", smb2->smb2_get_error());
+            appData->setErrorMsg("could not decode file standard info");
             return -1;
           }
         break;
@@ -170,7 +174,8 @@ Smb2QueryInfo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
           ptr = malloc(sizeof(struct smb2_file_extended_info));
           if (smb2_decode_file_extended_info(smb2, (struct smb2_file_extended_info*)ptr, &vec))
           {
-            smb2->smb2_set_error("could not decode file full ea info. %s", smb2->smb2_get_error());
+            string err = stringf("could not decode file full ea info. %s", smb2->smb2_get_error());
+            appData->setErrorMsg(err);
             return -1;
           }
         break;
@@ -178,7 +183,8 @@ Smb2QueryInfo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
           ptr = malloc(sizeof(struct smb2_file_stream_info));
           if (smb2_decode_file_stream_info(smb2, (struct smb2_file_stream_info*)ptr, &vec))
           {
-            smb2->smb2_set_error("could not decode file stream info. %s", smb2->smb2_get_error());
+            string err = stringf("could not decode file stream info. %s", smb2->smb2_get_error());
+            appData->setErrorMsg(err);
             return -1;
           }
         break;
@@ -186,12 +192,14 @@ Smb2QueryInfo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
           ptr = malloc(sizeof(struct smb2_file_all_info));
           if (smb2_decode_file_all_info((struct smb2_file_all_info*)ptr, &vec))
           {
-            smb2->smb2_set_error("could not decode file all info. %s", smb2->smb2_get_error());
+            appData->setErrorMsg("could not decode file all info");
             return -1;
           }
         break;
         default:
-          smb2->smb2_set_error("Can not decode InfoType/InfoClass %d/%d yet", this->requestedInfoType, this->requestedInfoClass);
+          string err = stringf("Can not decode InfoType/InfoClass %d/%d yet",
+                               this->requestedInfoType, this->requestedInfoClass);
+          appData->setErrorMsg(err);
           return -1;
       }
     }
@@ -202,7 +210,7 @@ Smb2QueryInfo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
       sd = new smb2_security_descriptor();
       if (sd == nullptr)
       {
-        smb2->smb2_set_error("Failed to allocate memory for secutiry");
+        appData->setErrorMsg("Failed to allocate memory for secutiry");
         return -1;
       }
       ptr = sd;
@@ -210,7 +218,7 @@ Smb2QueryInfo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
       string err2;
       if (smb2DecodeSecDescInternal(sd, &vec, err2) < 0)
       {
-        smb2->smb2_set_error("could not decode security descriptor. %s", err2.c_str());
+        appData->setErrorMsg("could not decode security descriptor -" + err2);
         return -1;
       }
     }
@@ -223,7 +231,7 @@ Smb2QueryInfo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
           ptr = malloc(sizeof(struct smb2_file_fs_size_info));
           if (smb2_decode_file_fs_size_info((struct smb2_file_fs_size_info*)ptr, &vec))
           {
-            smb2->smb2_set_error("could not decode file fs size info. %s", smb2->smb2_get_error());
+            appData->setErrorMsg("could not decode file fs size info");
             return -1;
           }
         break;
@@ -231,7 +239,7 @@ Smb2QueryInfo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
           ptr = malloc(sizeof(struct smb2_file_fs_device_info));
           if (smb2_decode_file_fs_device_info((struct smb2_file_fs_device_info*)ptr, &vec))
           {
-            smb2->smb2_set_error("could not decode file fs device info. %s", smb2->smb2_get_error());
+            appData->setErrorMsg("could not decode file fs device info");
             return -1;
           }
         break;
@@ -239,7 +247,7 @@ Smb2QueryInfo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
           ptr = malloc(sizeof(struct smb2_file_fs_control_info));
           if (smb2_decode_file_fs_control_info((struct smb2_file_fs_control_info*)ptr, &vec))
           {
-            smb2->smb2_set_error("could not decode file fs control info. %s", smb2->smb2_get_error());
+            appData->setErrorMsg("could not decode file fs control info");
             return -1;
           }
         break;
@@ -247,7 +255,7 @@ Smb2QueryInfo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
           ptr = malloc(sizeof(struct smb2_file_fs_full_size_info));
           if (smb2_decode_file_fs_full_size_info((struct smb2_file_fs_full_size_info*)ptr, &vec))
           {
-            smb2->smb2_set_error("could not decode file fs full size info. %s", smb2->smb2_get_error());
+            appData->setErrorMsg("could not decode file fs full size info");
             return -1;
           }
         break;
@@ -255,20 +263,22 @@ Smb2QueryInfo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
           ptr = malloc(sizeof(struct smb2_file_fs_sector_size_info));
           if (smb2_decode_file_fs_sector_size_info((struct smb2_file_fs_sector_size_info*)ptr, &vec))
           {
-            smb2->smb2_set_error("could not decode file fs sector size info. %s", smb2->smb2_get_error());
+            appData->setErrorMsg("could not decode file fs sector size info");
             return -1;
           }
         break;
         default:
-          smb2->smb2_set_error("Can not decode InfoType/InfoClass %d/%d yet",
+          string err = stringf("Can not decode InfoType/InfoClass %d/%d yet",
                                this->requestedInfoType,
                                this->requestedInfoClass);
+          appData->setErrorMsg(err);
           return -1;
       }
     }
     break;
     default:
-      smb2->smb2_set_error("Can not decode file InfoType %d yet", this->requestedInfoType);
+      string err = stringf("Can not decode file InfoType %d yet", this->requestedInfoType);
+      appData->setErrorMsg(err);
       return -1;
   }
 

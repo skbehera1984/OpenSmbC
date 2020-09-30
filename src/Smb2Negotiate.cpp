@@ -191,8 +191,9 @@ Smb2Negotiate::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   uint16_t struct_size;
 
   rep = (struct smb2_negotiate_reply *)malloc(sizeof(*rep));
-  if (rep == NULL) {
-    smb2->smb2_set_error("Failed to allocate negotiate reply");
+  if (rep == NULL)
+  {
+    appData->setErrorMsg("Failed to allocate negotiate reply");
     return -1;
   }
   memset(rep, 0, sizeof(struct smb2_negotiate_reply));
@@ -201,7 +202,9 @@ Smb2Negotiate::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   iov.smb2_get_uint16(0, &struct_size);
   if (struct_size != SMB2_NEGOTIATE_REPLY_SIZE || (struct_size & 0xfffe) != iov.len)
   {
-    smb2->smb2_set_error("Unexpected size of Negotiate reply. Expected %d, got %d", SMB2_NEGOTIATE_REPLY_SIZE, (int)iov.len);
+    string err = stringf("Unexpected size of Negotiate reply. Expected %d, got %d",
+                         SMB2_NEGOTIATE_REPLY_SIZE, (int)iov.len);
+    appData->setErrorMsg(err);
     return -1;
   }
 
@@ -224,9 +227,11 @@ Smb2Negotiate::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
   }
 
   /* I assume the security buffer is packed before negotiate contextx */
-  if (rep->security_buffer_length) {
-    if (rep->security_buffer_offset < SMB2_HEADER_SIZE + (SMB2_NEGOTIATE_REPLY_SIZE & 0xfffe)) {
-      smb2->smb2_set_error("Securty buffer overlaps with negotiate reply header");
+  if (rep->security_buffer_length)
+  {
+    if (rep->security_buffer_offset < SMB2_HEADER_SIZE + (SMB2_NEGOTIATE_REPLY_SIZE & 0xfffe))
+    {
+      appData->setErrorMsg("Securty buffer overlaps with negotiate reply header");
       return -1;
     }
   }
@@ -385,7 +390,8 @@ int Smb2Negotiate::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
   tmpiov.len = iov.len - len;
   if (decodeNegotiateContexts(smb2, &tmpiov, rep) < 0)
   {
-    smb2->smb2_set_error("Failed to decode smb2 negotiate contexts - %s", smb2->smb2_get_error());
+    string err = stringf("Failed to decode smb2 negotiate contexts - %s", smb2->smb2_get_error());
+    appData->setErrorMsg(err);
     return -1;
   }
 
