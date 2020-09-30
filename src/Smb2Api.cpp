@@ -1554,7 +1554,7 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
     return -1;
   }
 
-  if (dcerpc_get_response_header(ioctl_OUT, ioctl_OUT_Cnt, &rsp_hdr) < 0)
+  if (!dcerpc_get_response_header(ioctl_OUT, ioctl_OUT_Cnt, &rsp_hdr))
   {
     error = FUNC + string("Failed to parse dcerpc response header");
     smb2_close(fh, error2);
@@ -1564,7 +1564,7 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
 
   if (rsp_hdr.packet_type == RPC_PACKET_TYPE_BINDNACK)
   {
-    if (dcerpc_get_bind_nack_response(ioctl_OUT, ioctl_OUT_Cnt, &nack) < 0)
+    if (!dcerpc_get_bind_nack_response(ioctl_OUT, ioctl_OUT_Cnt, &nack))
     {
       error = FUNC + string("Failed to parse dcerpc BINDNACK response");
       smb2_close(fh, error2);
@@ -1578,7 +1578,7 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
   }
   else if (rsp_hdr.packet_type == RPC_PACKET_TYPE_BINDACK)
   {
-    if (dcerpc_get_bind_ack_response(ioctl_OUT, ioctl_OUT_Cnt, &ack) < 0)
+    if (!dcerpc_get_bind_ack_response(ioctl_OUT, ioctl_OUT_Cnt, &ack))
     {
       error = FUNC + string("Failed to parse dcerpc BINDACK response");
       smb2_close(fh, error2);
@@ -2291,7 +2291,7 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
     goto error;
   }
 
-  if (dcerpc_get_response_header(output_buf, output_count, &rsp_hdr) < 0)
+  if (!dcerpc_get_response_header(output_buf, output_count, &rsp_hdr))
   {
     error = FUNC + string("Failed to parse dcerpc response header");
     goto error;
@@ -2299,7 +2299,7 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
 
   if (rsp_hdr.packet_type == RPC_PACKET_TYPE_BINDNACK)
   {
-    if (dcerpc_get_bind_nack_response(output_buf, output_count, &nack) < 0)
+    if (!dcerpc_get_bind_nack_response(output_buf, output_count, &nack))
     {
       error = FUNC + string("Failed to parse dcerpc BINDNACK response");
       goto error;
@@ -2309,7 +2309,7 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
   }
   else if (rsp_hdr.packet_type == RPC_PACKET_TYPE_BINDACK)
   {
-    if (dcerpc_get_bind_ack_response(output_buf, output_count, &ack) < 0)
+    if (!dcerpc_get_bind_ack_response(output_buf, output_count, &ack))
     {
       error = FUNC + string("Failed to parse dcerpc BINDACK response");
       goto error;

@@ -147,48 +147,48 @@ void dcerpc_create_bind_req(struct rpc_bind_request *bnd, int num_context_items)
   bnd->num_context_items = num_context_items; /* atleast one context */
 }
 
-int
+bool
 dcerpc_get_response_header(uint8_t *buf,
                            uint32_t buf_len,
                            struct rpc_header *hdr)
 {
   if (buf == NULL|| hdr == NULL)
-    return -1;
+    return false;
 
   if (buf_len < sizeof(struct rpc_header))
-    return -1;
+    return false;
 
   memcpy(hdr, buf, sizeof(struct rpc_header));
-  return 0;
+  return true;
 }
 
-int
+bool
 dcerpc_get_bind_ack_response(uint8_t *buf, uint32_t buf_len,
                              struct rpc_bind_response *rsp)
 {
   if (buf == NULL|| rsp == NULL)
-    return -1;
+    return false;
 
   if (buf_len < sizeof(struct rpc_bind_response))
-    return -1;
+    return false;
 
   memcpy(rsp, buf, sizeof(struct rpc_bind_response));
-  return 0;
+  return true;
 }
 
-int
+bool
 dcerpc_get_bind_nack_response(uint8_t *buf,
                               uint32_t buf_len,
                               struct rpc_bind_nack_response *rsp)
 {
   if (buf == NULL|| rsp == NULL)
-    return -1;
+    return false;
 
   if (buf_len < sizeof(struct rpc_bind_nack_response))
-    return -1;
+    return false;
 
   memcpy(rsp, buf, sizeof(struct rpc_bind_nack_response));
-  return 0;
+  return true;
 }
 
 static void
@@ -212,7 +212,7 @@ dcerpc_init_Operation_Request(struct DceRpcOperationRequest *dceOpReq, uint16_t 
   dceOpReq->opnum = htole16(opnum);
 }
 
-int
+void
 dcerpc_create_Operation_Request(struct DceRpcOperationRequest *dceOpReq,
                                 uint16_t opnum,
                                 uint32_t payload_size)
@@ -223,7 +223,6 @@ dcerpc_create_Operation_Request(struct DceRpcOperationRequest *dceOpReq,
   dceOpReq->dceRpcHdr.frag_length  =  sizeof(struct DceRpcOperationRequest) + payload_size;
   dceOpReq->dceRpcHdr.call_id      =  global_call_id++;
   dceOpReq->alloc_hint             =  payload_size;/* some add 2 more bytes ?*/
-  return 0;
 }
 
 int
@@ -385,7 +384,7 @@ dcerpc_init_serverName(uint32_t        refid,
         return 0;
 }
 
-static int
+static void
 srvsvc_init_InfoStruct(uint32_t infolevel, uint32_t id,
                        uint32_t entries, uint32_t arrayId,
                        uint8_t *buffer, uint32_t buf_len)
@@ -399,7 +398,6 @@ srvsvc_init_InfoStruct(uint32_t infolevel, uint32_t id,
   info->referent_id  = htole32(id);
   info->num_entries  = htole32(entries);
   info->array_referent_id = htole32(arrayId);
-  return 0;
 }
 
 int
@@ -433,10 +431,8 @@ srvsvc_create_NetrShareEnumRequest(std::string& server_name,
                 offset += padlen;
         }
 
-        if (srvsvc_init_InfoStruct(shinfo_type, 0x01fbf3e8, 0, 0,
-                                   buffer+offset, buf_len - offset) <0) {
-                 return -1;
-        }
+        srvsvc_init_InfoStruct(shinfo_type, 0x01fbf3e8, 0, 0, buffer+offset, buf_len - offset);
+
         offset += sizeof(struct InfoStruct);
 
         PreferedMaximumLength = (uint32_t *)(buffer+offset);

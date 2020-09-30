@@ -146,16 +146,16 @@ void dcerpc_init_context(struct context_item* ctx, ContextType type);
 void
 dcerpc_create_bind_req(struct rpc_bind_request *bnd,
                        int num_context_items);
-int
+bool
 dcerpc_get_response_header(uint8_t *buf,
                            uint32_t buf_len,
                            struct rpc_header *dceRpcHdr);
-int
+bool
 dcerpc_get_bind_ack_response(uint8_t *buf,
                              uint32_t buf_len,
                              struct rpc_bind_response *rsp);
 
-int
+bool
 dcerpc_get_bind_nack_response(uint8_t *buf,
                               uint32_t buf_len,
                               struct rpc_bind_nack_response *rsp);
@@ -191,7 +191,7 @@ struct DceRpcOperationResponse
         uint8_t padding;
 } __attribute__((packed));
 
-int
+void
 dcerpc_create_Operation_Request(struct DceRpcOperationRequest *dceOpReq,
                                 uint16_t opnum,
                                 uint32_t payload_size);
