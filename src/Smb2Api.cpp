@@ -1640,7 +1640,7 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
 
     if (offset > max_xmit_frag)
     {
-      error = FUNC + string("IOCTL Payload size is larger than max_xmit_frag");
+      error = FUNC + string("IOCTL : DCE_OP_SHARE_ENUM Payload size is larger than max_xmit_frag");
       goto error;
     }
 
@@ -1652,7 +1652,7 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
                         error2);
     if (status != SMB2_STATUS_SUCCESS)
     {
-      error = FUNC + "IOCTL FAILED2" + error2;
+      error = FUNC + "IOCTL: DCE_OP_SHARE_ENUM  Failed : " + error2;
       goto error;
     }
     offset = 0;
@@ -1670,7 +1670,7 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
     /* Response parsing */
     if (dcerpc_parse_Operation_Response(sharesBuff, sharesBuffLen, &dceOpRes, &status, error2) < 0)
     {
-      error = FUNC + stringf("dcerpc_parse_Operation_Response failed : status = %x, error = %s", status, error2.c_str());
+      error = FUNC + error2 + " For DCE_OP_SHARE_ENUM";
       goto error;
     }
 
@@ -1700,7 +1700,7 @@ Smb2Context::smb2_list_shares(string& server, string& user, uint32_t shinfo_type
                                           &dceOpRes2,
                                           &status, error2) < 0)
       {
-        error = FUNC + stringf("dcerpc_parse_Operation_Response -2 failed : status = %x, error = %s", status, error2.c_str());
+        error = FUNC + error2 + " while reading DCE_OP_SHARE_ENUM fragment";
         goto error;
       }
       last_frag = dceOpRes2.dceRpcHdr.packet_flags & RPC_FLAG_LAST_FRAG;
@@ -2339,7 +2339,7 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
 
   if (offset > max_xmit_frag)
   {
-    error = FUNC + string("IOCTL Payload size is larger than max_xmit_frag");
+    error = FUNC + string("IOCTL: DCE_OP_OPEN_POLICY2 Payload size is larger than max_xmit_frag");
     goto error;
   }
 
@@ -2358,8 +2358,7 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
                                       &dceOpRes2,
                                       &status, error2) < 0)
   {
-    error = FUNC + stringf("Failed to parse dcerpc response for OpenPolicy2 : status = %x, error = %s",
-                   status, error2.c_str());
+    error = FUNC + error2 + " for OpenPolicy2";
     goto error;
   }
 
@@ -2399,7 +2398,7 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
 
   if (offset > max_xmit_frag)
   {
-    error = FUNC + string("IOCTL Payload size is larger than max_xmit_frag");
+    error = FUNC + string("IOCTL : LookupNames Payload size is larger than max_xmit_frag");
     goto error;
   }
 
@@ -2418,8 +2417,7 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
                                       &dceOpRes2,
                                       &status, error2) < 0)
   {
-    error = FUNC + stringf("Failed to parse dcerpc response for LookupNames : status = %x, error = %s",
-                   status, error2.c_str());
+    error = FUNC + error2 + " for LookupNames";
     goto error;
   }
 
@@ -2469,8 +2467,7 @@ Smb2Context::smb2_lookUpSid(string& user, string& domain, string& server, uint8_
                                       output_count,
                                       &dceOpRes2,
                                       &status, error2) < 0) {
-    error = FUNC + stringf("dcerpc_parse_Operation_Response failed. status : %x, error - %s",
-                           status, error2.c_str());
+    error = FUNC + error2 + " for ClosePolicy";
     goto error;
   }
 #endif

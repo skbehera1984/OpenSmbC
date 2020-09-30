@@ -23,6 +23,8 @@ static const uint8_t LSARPC_UUID_D[] = {0xef, 0x00, 0x01, 0x23, 0x45, 0x67, 0x89
 #define TRANSFER_SYNTAX_NDR_UUID_C	0x11c9
 static const uint8_t TRANSFER_SYNTAX_NDR_UUID_D[] = { 0x9f, 0xe8, 0x08, 0x00, 0x2b, 0x10, 0x48, 0x60 };
 
+#define FUNC stringf("%s: ", __func__)
+
 uint8_t
 get_byte_order_dr(struct rpc_data_representation data)
 {
@@ -228,43 +230,47 @@ int
 dcerpc_parse_Operation_Response(const uint8_t *buffer,
                                 const uint32_t buf_len,
                                 struct DceRpcOperationResponse *dceOpRes,
-                                uint32_t *status,
-                                std::string& err)
+                                uint32_t      *status,
+                                std::string&   error)
 {
-    struct DceRpcOperationResponse *inrep = NULL;
+  struct DceRpcOperationResponse *inrep = NULL;
 
-    if (buf_len < sizeof(struct DceRpcOperationResponse)) {
-        err = std::string("dcerpc_parse_Operation_Response:response too small for DceRpcOperationResponse");
-        return -1;
+  if (buf_len < sizeof(struct DceRpcOperationResponse))
+  {
+    error = FUNC + "Response too small for DceRpcOperationResponse";
+    return -1;
+  }
+
+  inrep = (struct DceRpcOperationResponse *)buffer;
+
+  dceOpRes->alloc_hint   = le32toh(inrep->alloc_hint);
+  dceOpRes->context_id   = le16toh(inrep->context_id);
+  dceOpRes->cancel_count = inrep->cancel_count;
+  dceOpRes->padding      = inrep->padding;
+
+  dceOpRes->dceRpcHdr.version_major = inrep->dceRpcHdr.version_major;
+  dceOpRes->dceRpcHdr.version_minor = inrep->dceRpcHdr.version_minor;
+  dceOpRes->dceRpcHdr.packet_type   = inrep->dceRpcHdr.packet_type;
+  dceOpRes->dceRpcHdr.packet_flags  = inrep->dceRpcHdr.packet_flags;
+  dceOpRes->dceRpcHdr.frag_length   = le16toh(inrep->dceRpcHdr.frag_length);
+  dceOpRes->dceRpcHdr.auth_length   = le16toh(inrep->dceRpcHdr.auth_length);
+  dceOpRes->dceRpcHdr.call_id       = le32toh(inrep->dceRpcHdr.call_id);
+
+  dceOpRes->dceRpcHdr.data_rep      = inrep->dceRpcHdr.data_rep;
+
+  if ((buf_len - sizeof(struct DceRpcOperationResponse)) <= 8)
+  {
+    /* the OP failed */
+    uint32_t *stsptr = (uint32_t*)(buffer+sizeof(struct DceRpcOperationResponse));
+    if (status)
+    {
+      *status = le32toh(*stsptr);
+      error = FUNC + stringf("Got Error Response, status - %x", *status);
     }
+    return -1;
+  }
 
-    inrep = (struct DceRpcOperationResponse *)buffer;
-
-    dceOpRes->alloc_hint   = le32toh(inrep->alloc_hint);
-    dceOpRes->context_id   = le16toh(inrep->context_id);
-    dceOpRes->cancel_count = inrep->cancel_count;
-    dceOpRes->padding      = inrep->padding;
-
-    dceOpRes->dceRpcHdr.version_major = inrep->dceRpcHdr.version_major;
-    dceOpRes->dceRpcHdr.version_minor = inrep->dceRpcHdr.version_minor;
-    dceOpRes->dceRpcHdr.packet_type   = inrep->dceRpcHdr.packet_type;
-    dceOpRes->dceRpcHdr.packet_flags  = inrep->dceRpcHdr.packet_flags;
-    dceOpRes->dceRpcHdr.frag_length   = le16toh(inrep->dceRpcHdr.frag_length);
-    dceOpRes->dceRpcHdr.auth_length   = le16toh(inrep->dceRpcHdr.auth_length);
-    dceOpRes->dceRpcHdr.call_id       = le32toh(inrep->dceRpcHdr.call_id);
-
-    dceOpRes->dceRpcHdr.data_rep      = inrep->dceRpcHdr.data_rep;
-
-    if ((buf_len - sizeof(struct DceRpcOperationResponse)) <= 8) {
-        /* the OP failed */
-        uint32_t *stsptr = (uint32_t*)(buffer+sizeof(struct DceRpcOperationResponse));
-        if (status) {
-            *status = le32toh(*stsptr);
-        }
-        return -1;
-    }
-
-    return 0;
+  return 0;
 }
 
 const char *
