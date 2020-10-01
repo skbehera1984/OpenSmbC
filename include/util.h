@@ -8,13 +8,9 @@
  * SMB2 URL format :
  * smb2://[<domain;][<username>@]<host>/<share>/<path>
  *
- * Function will return a pointer to an iscsi smb2 structure if successful,
- * or it will return NULL and set smb2_get_error() accordingly if there was
- * a problem with the URL.
- *
  * The returned structure is freed by calling smb2_destroy_url()
  */
-smb2_url *smb2_parse_url(Smb2ContextPtr smb2, const char *url);
+smb2_url *smb2_parse_url(Smb2ContextPtr smb2, const char *url, std::string& error);
 void smb2_destroy_url(smb2_url *url);
 
 void     winEpochToTimeval(uint64_t smb2_time, struct smb2_timeval *tv);

@@ -11,13 +11,14 @@
 #include <stdio.h>
 
 #include "util.h"
+#include "Stringf.h"
 #include "smb2.h"
 #include "PrivateData.h"
 
 #define MAX_URL_SIZE 256
 
 static int
-smb2_parse_args(Smb2ContextPtr smb2, char *args)
+smb2_parse_args(Smb2ContextPtr smb2, char *args, std::string& error)
 {
   while (args && *args != 0)
   {
@@ -52,7 +53,7 @@ smb2_parse_args(Smb2ContextPtr smb2, char *args)
       }
       else
       {
-        smb2->smb2_set_error("Unknown sec= argument: %s", value);
+        error = stringf("Unknown sec= argument: %s", value);
         return -1;
       }
     }
@@ -88,13 +89,13 @@ smb2_parse_args(Smb2ContextPtr smb2, char *args)
       }
       else
       {
-        smb2->smb2_set_error("Unknown vers= argument: %s", value);
+        error = stringf("Unknown vers= argument: %s", value);
         return -1;
       }
     }
     else
     {
-      smb2->smb2_set_error("Unknown argument: %s", args);
+      error = stringf("Unknown argument: %s", args);
       return -1;
     }
     args = next;
@@ -103,7 +104,7 @@ smb2_parse_args(Smb2ContextPtr smb2, char *args)
   return 0;
 }
 
-smb2_url *smb2_parse_url(Smb2ContextPtr smb2, const char *url)
+smb2_url *smb2_parse_url(Smb2ContextPtr smb2, const char *url, std::string& error)
 {
   smb2_url *u;
   char *ptr, *tmp, str[MAX_URL_SIZE];
@@ -111,12 +112,12 @@ smb2_url *smb2_parse_url(Smb2ContextPtr smb2, const char *url)
 
   if (strncmp(url, "smb://", 6))
   {
-    smb2->smb2_set_error("URL does not start with 'smb://'");
+    error = "URL does not start with 'smb://'";
     return NULL;
   }
   if (strlen(url + 6) >= MAX_URL_SIZE)
   {
-    smb2->smb2_set_error("URL is too long");
+    error = "URL is too long";
     return NULL;
   }
   strncpy(str, url + 6, MAX_URL_SIZE);
@@ -125,7 +126,7 @@ smb2_url *smb2_parse_url(Smb2ContextPtr smb2, const char *url)
   if (args)
   {
     *(args++) = '\0';
-    if (smb2_parse_args(smb2, args) != 0)
+    if (smb2_parse_args(smb2, args, error) != 0)
     {
       return NULL;
     }
@@ -134,7 +135,7 @@ smb2_url *smb2_parse_url(Smb2ContextPtr smb2, const char *url)
   u = new smb2_url();
   if (u == nullptr)
   {
-    smb2->smb2_set_error("Failed to allocate smb2_url");
+    error = "Failed to allocate smb2_url";
     return NULL;
   }
 

@@ -264,26 +264,6 @@ uint8_t Smb2Context::smb2IsEncryptionSupported()
   return serverSupportEncryption;
 }
 
-void Smb2Context::smb2_set_error(const char *error_string, ...)
-{
-  va_list ap;
-  char errstr[MAX_ERROR_SIZE] = {0};
-
-  va_start(ap, error_string);
-  if (vsnprintf(errstr, MAX_ERROR_SIZE, error_string, ap) < 0)
-  {
-    strncpy(errstr, "could not format error string!", MAX_ERROR_SIZE);
-  }
-  va_end(ap);
-
-  strncpy(errorMsg, errstr, MAX_ERROR_SIZE);
-}
-
-const char *Smb2Context::smb2_get_error()
-{
-  return errorMsg;
-}
-
 uint32_t Smb2Context::smb2GetMaxReadSize()
 {
   return max_read_size;

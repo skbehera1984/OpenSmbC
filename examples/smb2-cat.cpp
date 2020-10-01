@@ -39,9 +39,9 @@ int main(int argc, char *argv[])
     exit(0);
   }
 
-  smb2_url *url = smb2_parse_url(smb2, argv[1]);
+  smb2_url *url = smb2_parse_url(smb2, argv[1], err);
   if (url == NULL) {
-    fprintf(stderr, "Failed to parse url: %s\n", smb2->smb2_get_error());
+    fprintf(stderr, "Failed to parse url: %s\n", err.c_str());
     exit(0);
   }
 

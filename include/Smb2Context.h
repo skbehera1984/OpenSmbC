@@ -45,9 +45,6 @@ public:
   uint8_t smb2IsEncryptionEnabled();
   void    smb2EnableEncryption(bool enable);
 
-  const char *smb2_get_error();
-  void smb2_set_error(const char *error_string, ...);
-
   bool smb2_queue_pdu(Smb2Pdu *pdu, std::string& err);
   Smb2Pdu* smb2_find_pdu(uint64_t messageId);
   void smb2_remove_pdu(uint64_t messageId);
