@@ -2047,7 +2047,8 @@ Smb2Context::smb2_setinfo_extended(string&   path,
   full_extended_info.eabuf_len = 0;
   smb2_encode_file_extended_info(this, extended_info, count,
                                  full_extended_info.eabuf,
-                                 &full_extended_info.eabuf_len);
+                                 &full_extended_info.eabuf_len,
+                                 error);
 
   memset(&info, 0, sizeof(smb2_file_info));
   info.info_type = SMB2_0_INFO_FILE;
@@ -2100,7 +2101,8 @@ Smb2Context::smb2_fsetinfo_extended(smb2fh         *fh,
   full_extended_info.eabuf_len = 0;
   smb2_encode_file_extended_info(this, extended_info, count,
                                  full_extended_info.eabuf,
-                                 &full_extended_info.eabuf_len);
+                                 &full_extended_info.eabuf_len,
+                                 error);
 
   memset(&info, 0, sizeof(smb2_file_info));
   info.info_type = SMB2_0_INFO_FILE;

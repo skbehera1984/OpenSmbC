@@ -139,9 +139,8 @@ Smb2QueryInfo::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
 int
 Smb2QueryInfo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
 {
-  if (smb2_is_error_response()) {
+  if (smb2_is_error_response())
     return smb2_process_error_variable(smb2);
-  }
 
   struct smb2_query_info_reply *rep = (struct smb2_query_info_reply *)this->payload;
   smb2_iovec &iov = in.iovs.back();
@@ -174,24 +173,29 @@ Smb2QueryInfo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
           }
         break;
         case SMB2_FILE_FULL_EA_INFORMATION:
+        {
+          string error;
           if (header_resp.status == SMB2_STATUS_NO_EAS_ON_FILE)
             return 0;
           ptr = malloc(sizeof(struct smb2_file_extended_info));
-          if (smb2_decode_file_extended_info(smb2, (struct smb2_file_extended_info*)ptr, &vec))
+          if (smb2_decode_file_extended_info(smb2, (struct smb2_file_extended_info*)ptr, &vec, error))
           {
-            string err = stringf("could not decode file full ea info. %s", smb2->smb2_get_error());
-            appData->setErrorMsg(err);
+            error = "could not decode file EA info - " + error;
+            appData->setErrorMsg(error);
             return -1;
           }
+        }
         break;
         case SMB2_FILE_STREAM_INFORMATION:
+        {
+          string error;
           ptr = malloc(sizeof(struct smb2_file_stream_info));
-          if (smb2_decode_file_stream_info(smb2, (struct smb2_file_stream_info*)ptr, &vec))
+          if (smb2_decode_file_stream_info(smb2, (struct smb2_file_stream_info*)ptr, &vec, error))
           {
-            string err = stringf("could not decode file stream info. %s", smb2->smb2_get_error());
-            appData->setErrorMsg(err);
+            appData->setErrorMsg(error);
             return -1;
           }
+        }
         break;
         case SMB2_FILE_ALL_INFORMATION:
           ptr = malloc(sizeof(struct smb2_file_all_info));

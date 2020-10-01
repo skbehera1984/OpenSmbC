@@ -16,23 +16,18 @@ int smb2_encode_file_extended_info(Smb2ContextPtr smb2,
                                    struct smb2_file_extended_info *info,
                                    const int count,
                                    uint8_t *buffer,
-                                   uint32_t *buffer_len);
+                                   uint32_t *buffer_len,
+                                   std::string& error);
 
 int smb2_decode_file_extended_info(Smb2ContextPtr smb2,
                                    struct smb2_file_extended_info *info,
-                                   smb2_iovec *vec);
-
-int smb2_decode_file_full_ea_info(Smb2ContextPtr smb2,
-                                  struct smb2_file_full_ea_info *info,
-                                  smb2_iovec *vec);
+                                   smb2_iovec     *vec,
+                                   std::string&   error);
 
 int smb2_decode_file_stream_info(Smb2ContextPtr smb2,
                                  struct smb2_file_stream_info *info,
-                                 smb2_iovec *vec);
-
-int smb2_decode_file_full_stream_info(Smb2ContextPtr smb2,
-                                      struct smb2_file_full_stream_info *info,
-                                      smb2_iovec *vec);
+                                 smb2_iovec     *vec,
+                                 std::string&   error);
 
 int smb2_decode_file_fs_size_info(struct smb2_file_fs_size_info *fs, smb2_iovec *vec);
 int smb2_decode_file_fs_device_info(struct smb2_file_fs_device_info *fs, smb2_iovec *vec);
