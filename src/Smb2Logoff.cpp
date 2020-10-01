@@ -66,8 +66,8 @@ Smb2Logoff::createPdu(Smb2ContextPtr smb2, AppData *logOffData)
 int
 Smb2Logoff::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
 {
-  if (smb2_is_error_response()) {
-    return smb2_process_error_fixed(smb2);
+  if (smb2ReplyIsError()) {
+    return smb2ProcessErrorReplyFixed(smb2);
   }
 
   return 0;
@@ -76,8 +76,9 @@ Smb2Logoff::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
 int
 Smb2Logoff::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
 {
-  if (smb2_is_error_response()) {
-    return smb2_process_error_variable(smb2);
+  if (smb2ReplyIsError())
+  {
+    return smb2ProcessErrorReplyVariable(smb2);
   }
   return 0;
 }

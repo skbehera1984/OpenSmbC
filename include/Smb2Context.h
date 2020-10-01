@@ -50,7 +50,7 @@ public:
   void smb2_remove_pdu(uint64_t messageId);
   void smb2_pdu_add_to_waitqueue(Smb2Pdu *pdu);
 
-  int wait_for_reply(std::string& error);
+  int sendAndReceive(std::string& error);
   void endSendReceive();
 
 private:

@@ -65,8 +65,8 @@ Smb2Echo::createPdu(Smb2ContextPtr smb2, AppData *echoData)
 int
 Smb2Echo::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
 {
-  if (smb2_is_error_response()) {
-    return smb2_process_error_fixed(smb2);
+  if (smb2ReplyIsError()) {
+    return smb2ProcessErrorReplyFixed(smb2);
   }
   return 0;
 }
@@ -74,8 +74,8 @@ Smb2Echo::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
 int
 Smb2Echo::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
 {
-  if (smb2_is_error_response()) {
-    return smb2_process_error_variable(smb2);
+  if (smb2ReplyIsError()) {
+    return smb2ProcessErrorReplyVariable(smb2);
   }
   return 0;
 }

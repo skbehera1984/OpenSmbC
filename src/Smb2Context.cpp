@@ -342,7 +342,7 @@ void Smb2Context::smb2_pdu_add_to_waitqueue(Smb2Pdu *pdu)
   }
 }
 
-int Smb2Context::wait_for_reply(string& error)
+int Smb2Context::sendAndReceive(string& error)
 {
   isComplete = false;
 

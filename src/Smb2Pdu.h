@@ -42,7 +42,7 @@ public:
                           struct smb2_header *hdr,
                           std::string&        err);
 
-  void smb2_add_compound_pdu(Smb2Pdu *next_pdu);
+  void smb2AddCompoundPdu(Smb2Pdu *next_pdu);
 
   // the following are specific to each command
   virtual int encodeRequest(Smb2ContextPtr smb2, void *req) = 0;
@@ -55,9 +55,9 @@ protected:
   int smb2UpdatePreauthIntegrityHash(Smb2ContextPtr  smb2,
                                      smb2_io_vectors *iovs,
                                      std::string     &error);
-  bool smb2_is_error_response();
-  int smb2_process_error_fixed(Smb2ContextPtr smb2);
-  int smb2_process_error_variable(Smb2ContextPtr smb2);
+  bool smb2ReplyIsError();
+  int  smb2ProcessErrorReplyFixed(Smb2ContextPtr smb2);
+  int  smb2ProcessErrorReplyVariable(Smb2ContextPtr smb2);
 
 public:
   /********** REQUEST PART ***********/

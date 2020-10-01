@@ -173,7 +173,7 @@ void Smb2Pdu::setResponseHeader(struct smb2_header *rhdr)
 }
 
 void
-Smb2Pdu::smb2_add_compound_pdu(Smb2Pdu *next_pdu)
+Smb2Pdu::smb2AddCompoundPdu(Smb2Pdu *next_pdu)
 {
   Smb2Pdu *pdu = this;
 
@@ -263,7 +263,7 @@ Smb2Pdu::decodeHeader(smb2_iovec *iov, struct smb2_header *hdr, string& error)
 
 int Smb2Pdu::smb2ReplyGetFixedSize()
 {
-  if (smb2_is_error_response())
+  if (smb2ReplyIsError())
     return (SMB2_ERROR_REPLY_SIZE & 0xfffe);
 
   switch (header.command)
@@ -336,7 +336,7 @@ Smb2Pdu::smb2UpdatePreauthIntegrityHash(Smb2ContextPtr  smb2,
   return 0;
 }
 
-bool Smb2Pdu::smb2_is_error_response()
+bool Smb2Pdu::smb2ReplyIsError()
 {
   if ((header_resp.status & SMB2_STATUS_SEVERITY_MASK) == SMB2_STATUS_SEVERITY_ERROR)
   {
@@ -351,7 +351,7 @@ bool Smb2Pdu::smb2_is_error_response()
   return 0;
 }
 
-int Smb2Pdu::smb2_process_error_fixed(Smb2ContextPtr smb2)
+int Smb2Pdu::smb2ProcessErrorReplyFixed(Smb2ContextPtr smb2)
 {
   struct smb2_error_reply *rep;
   smb2_iovec &iov = in.iovs.back();
@@ -380,7 +380,7 @@ int Smb2Pdu::smb2_process_error_fixed(Smb2ContextPtr smb2)
   return rep->byte_count;
 }
 
-int Smb2Pdu::smb2_process_error_variable(Smb2ContextPtr smb2)
+int Smb2Pdu::smb2ProcessErrorReplyVariable(Smb2ContextPtr smb2)
 {
   struct smb2_error_reply *rep = (struct smb2_error_reply*)this->payload;
   smb2_iovec &iov = in.iovs.back();

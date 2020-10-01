@@ -45,7 +45,7 @@ Smb2Context::smb2_connect_share(string&   server,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -76,7 +76,7 @@ Smb2Context::smb2_disconnect_share()
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     return SMB2_STATUS_SOCKET_ERROR;
   }
@@ -149,7 +149,7 @@ Smb2Context::smb2_fquerydir(smb2fh *fh, string& pattern, string& error)
     return NULL;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return NULL;
@@ -195,7 +195,7 @@ Smb2Context::smb2_open_file(string&  path,
     return NULL;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return NULL;
@@ -276,7 +276,7 @@ Smb2Context::smb2_open(string& path, int flags, string& error)
     return NULL;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return NULL;
@@ -353,7 +353,7 @@ Smb2Context::smb2_open_pipe(string& pipe, string& error)
     return NULL;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return NULL;
@@ -383,7 +383,7 @@ Smb2Context::smb2_close(smb2fh *fh, std::string& error)
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -412,7 +412,7 @@ Smb2Context::smb2_fsync(smb2fh *fh, string& error)
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -450,7 +450,7 @@ Smb2Context::smb2_pread(smb2fh *fh, uint8_t *buf, uint32_t count, uint64_t offse
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -485,7 +485,7 @@ Smb2Context::smb2_pwrite(smb2fh *fh, uint8_t *buf, uint32_t count, uint64_t offs
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -520,7 +520,7 @@ Smb2Context::smb2_read(smb2fh *fh, uint8_t *buf, uint32_t count, string& error)
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -555,7 +555,7 @@ Smb2Context::smb2_write(smb2fh *fh, uint8_t *buf, uint32_t count, string& error)
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -604,7 +604,7 @@ Smb2Context::smb2_unlink(string& path, string& error)
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -661,7 +661,7 @@ Smb2Context::smb2_rmdir(string& path, string& error)
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -719,7 +719,7 @@ Smb2Context::smb2_mkdir(string& path, string& error)
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -761,7 +761,7 @@ Smb2Context::smb2_fstat(smb2fh          *fh,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -806,7 +806,7 @@ Smb2Context::smb2_stat(string&             path,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -851,7 +851,7 @@ Smb2Context::smb2_statvfs(string&             path,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -889,7 +889,7 @@ Smb2Context::smb2_getinfo_all(string&        path,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -944,7 +944,7 @@ Smb2Context::smb2_fgetinfo_all(smb2fh         *fh,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1006,7 +1006,7 @@ Smb2Context::smb2_setinfo_basic(string&        path,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1046,7 +1046,7 @@ Smb2Context::smb2_fsetinfo_basic(smb2fh         *fh,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1079,7 +1079,7 @@ Smb2Context::smb2_rename(string& oldpath, string& newpath, string& error)
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1111,7 +1111,7 @@ Smb2Context::smb2_truncate(string& path, uint64_t length, string& error)
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1143,7 +1143,7 @@ Smb2Context::smb2_ftruncate(smb2fh *fh, uint64_t length, string& error)
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1171,7 +1171,7 @@ Smb2Context::smb2_echo(string& error)
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1207,7 +1207,7 @@ Smb2Context::smb2_get_security(string& path, uint8_t **buf, uint32_t *buf_len, s
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1285,7 +1285,7 @@ Smb2Context::smb2_fget_security(smb2fh *fh, uint8_t **buf, uint32_t *buf_len, st
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1379,7 +1379,7 @@ Smb2Context::smb2_set_security(string& path, uint8_t *buf, uint32_t buf_len, str
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1431,7 +1431,7 @@ Smb2Context::smb2_fset_security(smb2fh *fh, uint8_t *buf, uint32_t buf_len, stri
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1468,7 +1468,7 @@ Smb2Context::smb2_ioctl(smb2fh *fh,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1789,7 +1789,7 @@ Smb2Context::smb2_getinfo_basic(string& path,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1826,7 +1826,7 @@ Smb2Context::smb2_fgetinfo_basic(smb2fh         *fh,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1863,7 +1863,7 @@ Smb2Context::smb2_getinfo_standard(string&   path,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1899,7 +1899,7 @@ Smb2Context::smb2_fgetinfo_standard(smb2fh *fh,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1936,7 +1936,7 @@ Smb2Context::smb2_getinfo_extended(string&   path,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -1977,7 +1977,7 @@ Smb2Context::smb2_fgetinfo_extended(smb2fh *fh,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -2062,7 +2062,7 @@ Smb2Context::smb2_setinfo_extended(string&   path,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -2116,7 +2116,7 @@ Smb2Context::smb2_fsetinfo_extended(smb2fh         *fh,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -2152,7 +2152,7 @@ Smb2Context::smb2_getinfo_stream(string&   path,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;
@@ -2193,7 +2193,7 @@ Smb2Context::smb2_fgetinfo_stream(smb2fh         *fh,
     return SMB2_STATUS_PAYLOAD_FAILED;
   }
 
-  if (this->wait_for_reply(error) < 0)
+  if (this->sendAndReceive(error) < 0)
   {
     error = FUNC + error;
     return SMB2_STATUS_SOCKET_ERROR;

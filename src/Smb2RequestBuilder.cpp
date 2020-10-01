@@ -621,7 +621,7 @@ Smb2Context::Smb2BuildQueryInfoRequest(std::string    &path,
     delete pdu;
     return -1;
   }
-  pdu->smb2_add_compound_pdu(next_pdu);
+  pdu->smb2AddCompoundPdu(next_pdu);
 
   AppData *closeData = new CloseData();
   if (closeData == nullptr)
@@ -649,7 +649,7 @@ Smb2Context::Smb2BuildQueryInfoRequest(std::string    &path,
     return -1;
   }
 
-  pdu->smb2_add_compound_pdu(next_pdu);
+  pdu->smb2AddCompoundPdu(next_pdu);
 
   if (!smb2_queue_pdu(pdu, error))
   {
@@ -983,7 +983,7 @@ Smb2Context::Smb2BuildSetInforequest(string&        path,
     return -1;
   }
 
-  pdu->smb2_add_compound_pdu(next_pdu);
+  pdu->smb2AddCompoundPdu(next_pdu);
 
   AppData *closeData = new CloseData();
   if (closeData == nullptr)
@@ -1011,7 +1011,7 @@ Smb2Context::Smb2BuildSetInforequest(string&        path,
     return -1;
   }
 
-  pdu->smb2_add_compound_pdu(next_pdu);
+  pdu->smb2AddCompoundPdu(next_pdu);
 
   if (!smb2_queue_pdu(pdu, error))
   {

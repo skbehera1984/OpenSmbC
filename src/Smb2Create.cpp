@@ -140,8 +140,8 @@ Smb2Create::createPdu(Smb2ContextPtr             smb2,
 int
 Smb2Create::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
 {
-  if (smb2_is_error_response()) {
-    return smb2_process_error_fixed(smb2);
+  if (smb2ReplyIsError()) {
+    return smb2ProcessErrorReplyFixed(smb2);
   }
 
   struct smb2_create_reply *rep;
@@ -199,8 +199,8 @@ Smb2Create::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
 int
 Smb2Create::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
 {
-  if (smb2_is_error_response()) {
-    return smb2_process_error_variable(smb2);
+  if (smb2ReplyIsError()) {
+    return smb2ProcessErrorReplyVariable(smb2);
   }
 
   struct smb2_create_reply *rep = (struct smb2_create_reply*)this->payload;

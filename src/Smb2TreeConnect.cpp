@@ -83,8 +83,8 @@ Smb2TreeConnect::createPdu(Smb2ContextPtr                   smb2,
 int
 Smb2TreeConnect::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
 {
-  if (smb2_is_error_response()) {
-    return smb2_process_error_fixed(smb2);
+  if (smb2ReplyIsError()) {
+    return smb2ProcessErrorReplyFixed(smb2);
   }
 
   struct smb2_tree_connect_reply *rep;
@@ -122,9 +122,9 @@ Smb2TreeConnect::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
 int
 Smb2TreeConnect::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
 {
-  if (smb2_is_error_response()) {
-    return smb2_process_error_variable(smb2);
-  }
+  if (smb2ReplyIsError())
+    return smb2ProcessErrorReplyVariable(smb2);
+
   return 0;
 }
 

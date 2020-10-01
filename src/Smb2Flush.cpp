@@ -69,8 +69,8 @@ Smb2Flush::createPdu(Smb2ContextPtr            smb2,
 int
 Smb2Flush::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
 {
-  if (smb2_is_error_response()) {
-    return smb2_process_error_fixed(smb2);
+  if (smb2ReplyIsError()) {
+    return smb2ProcessErrorReplyFixed(smb2);
   }
 
   return 0;
@@ -78,8 +78,8 @@ Smb2Flush::smb2ReplyProcessFixed(Smb2ContextPtr smb2)
 
 int Smb2Flush::smb2ReplyProcessVariable(Smb2ContextPtr smb2)
 {
-  if (smb2_is_error_response()) {
-    return smb2_process_error_variable(smb2);
+  if (smb2ReplyIsError()) {
+    return smb2ProcessErrorReplyVariable(smb2);
   }
   return 0;
 }
