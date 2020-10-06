@@ -1015,8 +1015,6 @@ struct smb2_ioctl_reply
 #define SMB2_SIGNATURE_SIZE 16
 #define SMB2_KEY_SIZE 16
 
-#define MAX_ERROR_SIZE 256
-
 #define PAD_TO_32BIT(len) ((len + 0x03) & 0xfffffffc)
 
 #endif /* !_SMB2_H_ */

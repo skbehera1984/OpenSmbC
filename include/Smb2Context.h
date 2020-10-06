@@ -176,61 +176,59 @@ public:
 public:
   Smb2Socket *smb2Socket;
 
-  enum smb2_sec sec;
+  enum smb2_sec     sec;
   Smb2AuthProvider *authenticator;
 
-  uint16_t security_mode;
-  bool use_cached_creds;
+  uint16_t    security_mode;
+  bool        use_cached_creds;
 
   enum smb2_negotiate_version version;
 
   std::string server;
   std::string share;
-  std::string  user;
+  std::string user;
 
   /* Only used with --without-libkrb5 */
   std::string password;
   std::string domain;
   std::string workstation;
-  char client_challenge[8];
+  char        client_challenge[8];
 
-  uint32_t credits;
+  uint32_t    credits;
 
-  uint32_t tree_id;
-  uint64_t message_id;
-  uint64_t session_id;
-  uint8_t *session_key;
-  uint8_t session_key_size;
+  uint32_t    tree_id;
+  uint64_t    message_id;
+  uint64_t    session_id;
+  uint8_t    *session_key;
+  uint8_t     session_key_size;
 
-  uint8_t signing_required;
-  uint8_t signing_key[SMB2_KEY_SIZE];
+  uint8_t     signing_required;
+  uint8_t     signing_key[SMB2_KEY_SIZE];
 
   /* SMB 3.11 support */
-  uint16_t hashAlgorithm;
-  uint16_t CipherId;
-  bool     clientSupportEncryption;
-  uint8_t  serverSupportEncryption;
-  uint8_t  *PreauthIntegrityHash;
-  uint32_t preauthIntegrityHashLength;
+  uint16_t    hashAlgorithm;
+  uint16_t    CipherId;
+  bool        clientSupportEncryption;
+  uint8_t     serverSupportEncryption;
+  uint8_t    *PreauthIntegrityHash;
+  uint32_t    preauthIntegrityHashLength;
 
   /* For sending PDUs */
   std::map<uint64_t, Smb2Pdu *>outqueue;
   std::map<uint64_t, Smb2Pdu *>waitqueue;
 
   /* Server capabilities */
-  bool supports_multi_credit;
+  bool        supports_multi_credit;
 
-  uint32_t max_transact_size;
-  uint32_t max_read_size;
-  uint32_t max_write_size;
-  uint16_t dialect;
+  uint32_t    max_transact_size;
+  uint32_t    max_read_size;
+  uint32_t    max_write_size;
+  uint16_t    dialect;
 
   // this is used to terminate send and wait loop
-  bool     isComplete;
+  bool        isComplete;
 
-  char errorMsg[MAX_ERROR_SIZE];
-
-  bool userInBackUpOperatorsGrp;
+  bool        userInBackUpOperatorsGrp;
 };
 
 #endif //_SMB2_CONTEXT_H_
