@@ -288,7 +288,7 @@ read_more_data:
       }
 
       pdu = smb2->smb2_find_pdu(hdr.message_id);
-      if (pdu == NULL)
+      if (pdu == nullptr)
       {
         error = FUNC + "No matching PDU found";
         return -1;
