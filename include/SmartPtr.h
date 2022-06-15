@@ -131,10 +131,10 @@ public:
   void clear() { p_release(); m_data = nullptr; }
 
   // scope resolution operators ( throws a std::string() error if it is a null pointer)
-  const T* operator ->() const throw (std::string) { throw_if_empty(); return p_get(m_data); }
-  T* operator ->() throw (std::string) { throw_if_empty(); return p_get(m_data); }
-  const T& operator *() const throw (std::string) { throw_if_empty(); return *(p_get(m_data)); }
-  T& operator *() throw (std::string) { throw_if_empty(); return *(p_get(m_data)); }
+  const T* operator ->() const { throw_if_empty(); return p_get(m_data); }
+  T* operator ->() { throw_if_empty(); return p_get(m_data); }
+  const T& operator *() const { throw_if_empty(); return *(p_get(m_data)); }
+  T& operator *() { throw_if_empty(); return *(p_get(m_data)); }
 
   // condition checking operators
   bool operator ==(T* ptr) const { return (this->ptr() == ptr); }
@@ -242,7 +242,7 @@ private:
   int incRefCount() { return (!m_data)?  0:++m_data->__refcount__value; }
   int decRefCount() { return (!m_data)? -1:--m_data->__refcount__value; }
   int getRefCount() const { return (!m_data)? 0:m_data->__refcount__value.load(); }
-  void throw_if_empty() const throw (std::string) { if ( empty() ) throw std::string("Cannot reference null pointer"); }
+  void throw_if_empty() const { if ( empty() ) throw std::string("Cannot reference null pointer"); }
 
   T* p_get(SmartRef* pData) const { return SmartData::get(pData); }
 
@@ -293,7 +293,7 @@ template <class T, void (*pfnDelete)(T*) = SmartPtr_delete> class SmartRefContai
 {
 public:
   //! The only way to create this object
-  static SmartPtr< SmartRefContainer<T, pfnDelete> > create_SmartPtr(T* p) throw (T*)
+  static SmartPtr< SmartRefContainer<T, pfnDelete> > create_SmartPtr(T* p)
   {
     SmartPtr< SmartRefContainer<T, pfnDelete> > ptr;
     if ( p )
